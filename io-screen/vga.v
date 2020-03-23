@@ -24,7 +24,7 @@
 
 //Dependencies: fifo.v
 
-module lcd #(
+module vga #(
 	parameter MASTER = "TRUE",
 	parameter DEBUG = "PATERN_RASTER",//"PATERN_RASTER"
 	parameter DISPLAY_CFG = "",
