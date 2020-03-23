@@ -33,11 +33,11 @@ module atmega_eep # (
 	input rst,
 	input clk,
 
-	input [BUS_ADDR_DATA_LEN-1:0]addr_dat,
-	input wr_dat,
-	input rd_dat,
-	input [7:0]bus_dat_in,
-	output reg [7:0]bus_dat_out,
+	input [BUS_ADDR_DATA_LEN-1:0]addr,
+	input wr,
+	input rd,
+	input [7:0]bus_in,
+	output reg [7:0]bus_out,
 
 	output int,
 	input int_rst,
@@ -80,14 +80,14 @@ end
 
 always @ *
 begin
-	bus_dat_out = 8'h00;
-	if(rd_dat)
+	bus_out = 8'h00;
+	if(rd)
 	begin
-		case(addr_dat)
-			EEARH_ADDR: bus_dat_out = EEARH;
-			EEARL_ADDR: bus_dat_out = EEARL;
-			EEDR_ADDR: bus_dat_out = EEDR_READ;
-			EECR_ADDR: bus_dat_out = EECR;
+		case(addr)
+			EEARH_ADDR: bus_out = EEARH;
+			EEARL_ADDR: bus_out = EEARL;
+			EEDR_ADDR: bus_out = EEDR_READ;
+			EECR_ADDR: bus_out = EECR;
 		endcase
 	end
 end
@@ -115,16 +115,16 @@ begin
 		begin
 			eempe_timeout_cnt <= eempe_timeout_cnt - 1;
 		end
-		if(wr_dat)
+		if(wr)
 		begin
-			case(addr_dat)
-				EEARH_ADDR: EEARH <= bus_dat_in;
-				EEARL_ADDR: EEARL <= bus_dat_in;
-				EEDR_ADDR: EEDR_WRITE <= bus_dat_in;
+			case(addr)
+				EEARH_ADDR: EEARH <= bus_in;
+				EEARL_ADDR: EEARL <= bus_in;
+				EEDR_ADDR: EEDR_WRITE <= bus_in;
 				EECR_ADDR: 
 				begin
-					EECR <= bus_dat_in;
-					if(EECR[2] | bus_dat_in[1])
+					EECR <= bus_in;
+					if(EECR[2] | bus_in[1])
 					begin
 						eempe_timeout_cnt <= 3'h4;
 					end

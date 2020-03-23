@@ -109,11 +109,12 @@ module atmega_tim_16bit # (
 	input clk64,
 	input clk256,
 	input clk1024,
-	input [BUS_ADDR_DATA_LEN-1:0]addr_dat,
-	input wr_dat,
-	input rd_dat,
-	input [7:0]bus_dat_in,
-	output reg [7:0]bus_dat_out,
+	input [BUS_ADDR_DATA_LEN-1:0]addr,
+	input wr,
+	input rd,
+	input [7:0]bus_in,
+	output reg [7:0]bus_out,
+	
 	output tov_int,
 	input tov_int_rst,
 	output ocra_int,
@@ -273,64 +274,64 @@ begin
 		default: t_ovf_value = 16'h0000;
 	endcase
 end
-wire io_select = (addr_dat[BUS_ADDR_DATA_LEN-1:4] == TCCRA_ADDR[BUS_ADDR_DATA_LEN-1:4]);
+wire io_select = (addr[BUS_ADDR_DATA_LEN-1:4] == TCCRA_ADDR[BUS_ADDR_DATA_LEN-1:4]);
 // Read registers.
 always @ *
 begin
 	if(rst)
 	begin
-		bus_dat_out = 8'h00;
+		bus_out = 8'h00;
 	end
 	else
 	begin
-		bus_dat_out = 8'h00;
-		if(rd_dat & addr_dat == TIFR_ADDR)
-			bus_dat_out = TIFR;
-		if(rd_dat & addr_dat == TIMSK_ADDR)
-			bus_dat_out = TIMSK;
+		bus_out = 8'h00;
+		if(rd & addr == TIFR_ADDR)
+			bus_out = TIFR;
+		if(rd & addr == TIMSK_ADDR)
+			bus_out = TIMSK;
 		
-		if(rd_dat & io_select)
+		if(rd & io_select)
 		begin
-			case(addr_dat[3:0])
-				TCCRA_ADDR[3:0]: bus_dat_out = TCCRA;
-				TCCRB_ADDR[3:0]: bus_dat_out = TCCRB;
-				TCCRC_ADDR[3:0]: bus_dat_out = TCCRC;
-				TCCRD_ADDR[3:0]: bus_dat_out = TCCRD;
-				TCNTL_ADDR[3:0]: bus_dat_out = TCNTL;
-				TCNTH_ADDR[3:0]: bus_dat_out = TMP_REG_rd;
+			case(addr[3:0])
+				TCCRA_ADDR[3:0]: bus_out = TCCRA;
+				TCCRB_ADDR[3:0]: bus_out = TCCRB;
+				TCCRC_ADDR[3:0]: bus_out = TCCRC;
+				TCCRD_ADDR[3:0]: bus_out = TCCRD;
+				TCNTL_ADDR[3:0]: bus_out = TCNTL;
+				TCNTH_ADDR[3:0]: bus_out = TMP_REG_rd;
 				//ICRL_ADDR[3:0]: bus_dat_out = ICRL;
 				//ICRH_ADDR[3:0]: bus_dat_out = TMP_REG_rd;
-				OCRAL_ADDR[3:0]: bus_dat_out = OCRAL;
-				OCRAH_ADDR[3:0]: bus_dat_out = OCRAH;
+				OCRAL_ADDR[3:0]: bus_out = OCRAL;
+				OCRAH_ADDR[3:0]: bus_out = OCRAH;
 				OCRBL_ADDR[3:0]:
 				begin
 					if(USE_OCRB == "TRUE")
-						bus_dat_out = OCRBL;
+						bus_out = OCRBL;
 				end
 				OCRBH_ADDR[3:0]:
 				begin
 					if(USE_OCRB == "TRUE")
-						bus_dat_out = OCRBH;
+						bus_out = OCRBH;
 				end
 				OCRCL_ADDR[3:0]:
 				begin
 					if(USE_OCRC == "TRUE")
-						bus_dat_out = OCRCL;
+						bus_out = OCRCL;
 				end
 				OCRCH_ADDR[3:0]:
 				begin
 					if(USE_OCRC == "TRUE")
-						bus_dat_out = OCRCH;
+						bus_out = OCRCH;
 				end
 				OCRDL_ADDR[3:0]:
 				begin
 					if(USE_OCRD == "TRUE")
-						bus_dat_out = OCRDL;
+						bus_out = OCRDL;
 				end
 				OCRDH_ADDR[3:0]:
 				begin
 					if(USE_OCRD == "TRUE")
-						bus_dat_out = OCRDH;
+						bus_out = OCRDH;
 				end
 			endcase
 		end
@@ -665,21 +666,21 @@ begin
 			end
 		end
 		// Write registers
-		if(wr_dat & addr_dat == TIFR_ADDR)
-			TIFR <= TIFR & ~bus_dat_in;
-		if(wr_dat & addr_dat == TIMSK_ADDR)
-			TIMSK <= bus_dat_in;
-		if(wr_dat & io_select)
+		if(wr & addr == TIFR_ADDR)
+			TIFR <= TIFR & ~bus_in;
+		if(wr & addr == TIMSK_ADDR)
+			TIMSK <= bus_in;
+		if(wr & io_select)
 		begin
-			case(addr_dat[3:0])
+			case(addr[3:0])
 				//GTCCR_ADDR[3:0]: GTCCR <= bus_dat_in;
-				TCCRA_ADDR[3:0]: TCCRA <= bus_dat_in;
-				TCCRB_ADDR[3:0]: TCCRB <= bus_dat_in;
-				TCCRC_ADDR[3:0]: TCCRC <= bus_dat_in;
-				TCCRD_ADDR[3:0]: TCCRD <= bus_dat_in;
+				TCCRA_ADDR[3:0]: TCCRA <= bus_in;
+				TCCRB_ADDR[3:0]: TCCRB <= bus_in;
+				TCCRC_ADDR[3:0]: TCCRC <= bus_in;
+				TCCRD_ADDR[3:0]: TCCRD <= bus_in;
 				TCNTL_ADDR[3:0]:
 				begin
-					TCNTL <= bus_dat_in;
+					TCNTL <= bus_in;
 					TCNTH <= TMP_REG_wr;
 				end
 				/*ICRL_ADDR[3:0]:
@@ -689,14 +690,14 @@ begin
 				end*/
 				OCRAL_ADDR[3:0]:
 				begin
-					OCRAL <= bus_dat_in;
+					OCRAL <= bus_in;
 					OCRAH <= TMP_REG_wr;
 				end
 				OCRBL_ADDR[3:0]:
 				begin
 					if(USE_OCRB == "TRUE")
 					begin
-						OCRBL <= bus_dat_in;
+						OCRBL <= bus_in;
 						OCRBH <= TMP_REG_wr;
 					end
 				end
@@ -704,7 +705,7 @@ begin
 				begin
 					if(USE_OCRC == "TRUE")
 					begin
-						OCRCL <= bus_dat_in;
+						OCRCL <= bus_in;
 						OCRCH <= TMP_REG_wr;
 					end
 				end
@@ -712,15 +713,15 @@ begin
 				begin
 					if(USE_OCRD == "TRUE")
 					begin
-						OCRDL <= bus_dat_in;
+						OCRDL <= bus_in;
 						OCRDH <= TMP_REG_wr;
 					end
 				end
 				TCNTH_ADDR[3:0], /*ICRH_ADDR, */OCRAH_ADDR[3:0], OCRBH_ADDR[3:0], OCRCH_ADDR[3:0], OCRDH_ADDR[3:0]:
-					TMP_REG_wr <= bus_dat_in;
+					TMP_REG_wr <= bus_in;
 			endcase
 		end
-		if(rd_dat & addr_dat == TCNTL_ADDR)
+		if(rd & addr == TCNTL_ADDR)
 			TMP_REG_rd <= TCNTH;
 		//if(rd_dat & addr_dat == ICRL_ADDR)
 		//	TMP_REG_rd <= ICRH;

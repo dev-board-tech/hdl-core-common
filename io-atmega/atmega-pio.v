@@ -35,20 +35,21 @@ module atmega_pio # (
 	parameter PORT_SET_ADDR = 'h01,
 	parameter DDR_ADDR = 'h23,
 	parameter PIN_ADDR = 'h24,
-	parameter PINMASK = 8'hFF,
-	parameter PULLUP_MASK = 8'h0,
-	parameter PULLDN_MASK = 8'h0,
-	parameter INVERSE_MASK = 8'h0,
-	parameter OUT_ENABLED_MASK = 8'hFF
+	parameter PINMASK = 'hFF,
+	parameter PULLUP_MASK = 'h0,
+	parameter PULLDN_MASK = 'h0,
+	parameter INVERSE_MASK = 'h0,
+	parameter OUT_ENABLED_MASK = 'hFF,
+	parameter INITIAL_OUTPUT_VALUE = 'h00
 )(
 	input rst,
 	input clk,
 
-	input [BUS_ADDR_DATA_LEN-1:0]addr_dat,
-	input wr_dat,
-	input rd_dat,
-	input [PORT_WIDTH - 1:0]bus_dat_in,
-	output reg [PORT_WIDTH - 1:0]bus_dat_out,
+	input [BUS_ADDR_DATA_LEN-1:0]addr,
+	input wr,
+	input rd,
+	input [PORT_WIDTH - 1:0]bus_in,
+	output reg [PORT_WIDTH - 1:0]bus_out,
 
 	input [PORT_WIDTH - 1:0]io_in,
 	output [PORT_WIDTH - 1:0]io_out,
@@ -68,7 +69,7 @@ begin
 	if(rst)
 	begin
 		DDR <= 0;
-		PORT <= 0;
+		PORT <= INITIAL_OUTPUT_VALUE;
 		PIN <=  0;
 	end
 	else
@@ -78,21 +79,21 @@ begin
 			if (PINMASK[cnt_int])
 			begin
 				PIN[cnt_int] <= io_in[cnt_int];
-				if(wr_dat)
+				if(wr)
 				begin
-					case(addr_dat[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT])
-					DDR_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: DDR[cnt_int] <= bus_dat_in[cnt_int];
-					PORT_OUT_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: PORT[cnt_int] <= bus_dat_in[cnt_int];
-					PORT_CLEAR_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: 
-					begin
-						if(USE_CLEAR_SET == "TRUE")
-							PORT[cnt_int] <= PORT[cnt_int] & ~bus_dat_in[cnt_int];
-					end
-					PORT_SET_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: 
-					begin
-						if(USE_CLEAR_SET == "TRUE")
-							PORT[cnt_int] <= PORT[cnt_int] | bus_dat_in[cnt_int];
-					end
+					case(addr[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT])
+						DDR_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: DDR[cnt_int] <= bus_in[cnt_int];
+						PORT_OUT_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: PORT[cnt_int] <= bus_in[cnt_int];
+						PORT_CLEAR_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: 
+						begin
+							if(USE_CLEAR_SET == "TRUE")
+								PORT[cnt_int] <= PORT[cnt_int] & ~bus_in[cnt_int];
+						end
+						PORT_SET_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: 
+						begin
+							if(USE_CLEAR_SET == "TRUE")
+								PORT[cnt_int] <= PORT[cnt_int] | bus_in[cnt_int];
+						end
 					endcase
 				end
 			end
@@ -106,18 +107,18 @@ begin
 	begin
 		if (PINMASK[cnt_int])
 		begin
-			bus_dat_out[cnt_int] = 1'b0;
-			if(rd_dat & ~rst)
+			bus_out[cnt_int] = 1'b0;
+			if(rd & ~rst)
 			begin
-				case(addr_dat[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT])
-					PORT_OUT_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: bus_dat_out[cnt_int] = PORT[cnt_int];
-					DDR_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: bus_dat_out[cnt_int] = DDR[cnt_int];
-					PIN_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: bus_dat_out[cnt_int] = INVERSE_MASK[cnt_int] ? ~PIN[cnt_int] : PIN[cnt_int];
+				case(addr[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT])
+					PORT_OUT_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: bus_out[cnt_int] = PORT[cnt_int];
+					DDR_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: bus_out[cnt_int] = DDR[cnt_int];
+					PIN_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: bus_out[cnt_int] = INVERSE_MASK[cnt_int] ? ~PIN[cnt_int] : PIN[cnt_int];
 				endcase
 			end
 		end
 		else
-			bus_dat_out[cnt_int] = 1'b0;
+			bus_out[cnt_int] = 1'b0;
 	end
 end
 

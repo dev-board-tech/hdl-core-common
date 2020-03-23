@@ -103,11 +103,12 @@ module atmega_tim_10bit # (
 	input clk,
 	input clk_pll,
 	input pll_enabled,
-	input [BUS_ADDR_DATA_LEN-1:0]addr_dat,
-	input wr_dat,
-	input rd_dat,
-	input [7:0]bus_dat_in,
-	output reg [7:0]bus_dat_out,
+	input [BUS_ADDR_DATA_LEN-1:0]addr,
+	input wr,
+	input rd,
+	input [7:0]bus_in,
+	output reg [7:0]bus_out,
+	
 	output tov_int,
 	input tov_int_rst,
 	output ocra_int,
@@ -238,40 +239,40 @@ always @ *
 begin
 	if(rst)
 	begin
-		bus_dat_out = 8'h00;
+		bus_out = 8'h00;
 	end
 	else
 	begin
-		bus_dat_out = 8'h00;
-		if(rd_dat & addr_dat == TIFR_ADDR)
-			bus_dat_out = TIFR;
-		if(rd_dat)
+		bus_out = 8'h00;
+		if(rd & addr == TIFR_ADDR)
+			bus_out = TIFR;
+		if(rd)
 		begin
-			case(addr_dat)
-				TCCRA_ADDR: bus_dat_out = TCCRA;
-				TCCRB_ADDR: bus_dat_out = TCCRB;
-				TCCRC_ADDR: bus_dat_out = TCCRC;
-				TCCRD_ADDR: bus_dat_out = TCCRD;
-				TCCRE_ADDR: bus_dat_out = TCCRE;
-				TCNTL_ADDR: bus_dat_out = TCNTL;
-				TCH_ADDR: bus_dat_out = TMP_REG;
+			case(addr)
+				TCCRA_ADDR: bus_out = TCCRA;
+				TCCRB_ADDR: bus_out = TCCRB;
+				TCCRC_ADDR: bus_out = TCCRC;
+				TCCRD_ADDR: bus_out = TCCRD;
+				TCCRE_ADDR: bus_out = TCCRE;
+				TCNTL_ADDR: bus_out = TCNTL;
+				TCH_ADDR: bus_out = TMP_REG;
 				OCRA_ADDR:
 				begin
 					if(USE_OCRA == "TRUE")
-						bus_dat_out = OCRA;
+						bus_out = OCRA[7:0];
 				end
 				OCRB_ADDR:
 				begin
 					if(USE_OCRB == "TRUE")
-						bus_dat_out = OCRB;
+						bus_out = OCRB[7:0];
 				end
-				OCRC_ADDR: bus_dat_out = OCRC;
+				OCRC_ADDR: bus_out = OCRC[7:0];
 				OCRD_ADDR:
 				begin
 					if(USE_OCRD == "TRUE")
-						bus_dat_out = OCRD;
+						bus_out = OCRD;
 				end
-				TIMSK_ADDR: bus_dat_out = TIMSK;
+				TIMSK_ADDR: bus_out = TIMSK;
 			endcase
 		end
 	end
@@ -604,42 +605,42 @@ begin
 		clk_sys_del <= clk; // We need this because the system clk is slower than PLL clock for this timer.
 		if({clk_sys_del, clk} == 2'b01 | ~pll_enabled)
 		begin
-			if(wr_dat & addr_dat == TIFR_ADDR)
-				TIFR <= TIFR & ~bus_dat_in;
-			if(wr_dat)
+			if(wr & addr == TIFR_ADDR)
+				TIFR <= TIFR & ~bus_in;
+			if(wr)
 			begin
-				case(addr_dat)
-					TCCRA_ADDR: TCCRA <= bus_dat_in;
-					TCCRB_ADDR: TCCRB <= bus_dat_in;
-					TCCRC_ADDR: TCCRC <= bus_dat_in;
-					TCCRD_ADDR: TCCRD <= bus_dat_in;
-					TCCRE_ADDR: TCCRE <= bus_dat_in;
-					TCNTL_ADDR: TCNTL <= bus_dat_in;
+				case(addr)
+					TCCRA_ADDR: TCCRA <= bus_in;
+					TCCRB_ADDR: TCCRB <= bus_in;
+					TCCRC_ADDR: TCCRC <= bus_in;
+					TCCRD_ADDR: TCCRD <= bus_in;
+					TCCRE_ADDR: TCCRE <= bus_in;
+					TCNTL_ADDR: TCNTL <= bus_in;
 					TCH_ADDR:
 					begin
-						TCH <= bus_dat_in;
-						TMP_REG <= bus_dat_in;
+						TCH <= bus_in;
+						TMP_REG <= bus_in;
 					end
 					OCRA_ADDR:
 					begin
 						if(USE_OCRA == "TRUE")
-							OCRA <= {TMP_REG, bus_dat_in};
+							OCRA <= {TMP_REG, bus_in};
 					end
 					OCRB_ADDR:
 					begin
 						if(USE_OCRB == "TRUE")
-							OCRB <= {TMP_REG, bus_dat_in};
+							OCRB <= {TMP_REG, bus_in};
 					end
-					OCRC_ADDR: OCRC <= {TMP_REG, bus_dat_in};
+					OCRC_ADDR: OCRC <= {TMP_REG, bus_in};
 					OCRD_ADDR:
 					begin
 						if(USE_OCRD == "TRUE")
-							OCRD <= {TMP_REG, bus_dat_in};
+							OCRD <= {TMP_REG, bus_in};
 					end
-					TIMSK_ADDR: TIMSK <= bus_dat_in;
+					TIMSK_ADDR: TIMSK <= bus_in;
 				endcase
 			end
-			if(rd_dat & addr_dat == TCNTL_ADDR)
+			if(rd & addr == TCNTL_ADDR)
 				TMP_REG <= TCH;
 		end
 	end

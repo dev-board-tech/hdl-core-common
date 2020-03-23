@@ -50,11 +50,11 @@ module atmega_spi_m # (
 	input halt,
 	input clk,
 
-	input [BUS_ADDR_DATA_LEN-1:0]addr_dat,
-	input wr_dat,
-	input rd_dat,
-	input [7:0]bus_dat_in,
-	output reg [7:0]bus_dat_out,
+	input [BUS_ADDR_DATA_LEN-1:0]addr,
+	input wr,
+	input rd,
+	input [7:0]bus_in,
+	output reg [7:0]bus_out,
 
 	output int,
 	input int_rst,
@@ -91,13 +91,13 @@ reg [(BAUDRATE_CNT_LEN ? BAUDRATE_CNT_LEN - 1 : 0) : 0]prescdemux;
 
 always @ (*)
 begin
-	bus_dat_out = 8'b00;
-	if(rd_dat)
+	bus_out = 8'b00;
+	if(rd)
 	begin
-		case(addr_dat)
-		SPCR_ADDR: bus_dat_out = SPCR;
-		SPSR_ADDR: bus_dat_out = SPSR;
-		SPDR_ADDR: bus_dat_out = SPDR;
+		case(addr)
+		SPCR_ADDR: bus_out = SPCR;
+		SPSR_ADDR: bus_out = SPSR;
+		SPDR_ADDR: bus_out = SPDR;
 		endcase
 	end
 end
@@ -201,9 +201,9 @@ begin
 			SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] <= 1'b0;
 		end
 		else
-		if(rd_dat)
+		if(rd)
 		begin
-			case(addr_dat)
+			case(addr)
 			SPSR_ADDR: SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] <= 1'b0;
 			endcase
 		end
@@ -216,16 +216,16 @@ begin
 		end	
 		if(bit_cnt == WORD_LEN)
 		begin
-			if(wr_dat)
+			if(wr)
 			begin
-				case(addr_dat)
-				SPCR_ADDR: SPCR <= bus_dat_in;
-				SPSR_ADDR: SPSR <= bus_dat_in;
+				case(addr)
+				SPCR_ADDR: SPCR <= bus_in;
+				SPSR_ADDR: SPSR <= bus_in;
 				SPDR_ADDR: 
 				begin
 					if(SPCR[`ATMEGA_SPI_SPCR_EN_bp])
 					begin
-						tx_shift_reg <= bus_dat_in;
+						tx_shift_reg <= bus_in;
 						bit_cnt <= 4'h0;
 						prescaller_cnt <= prescdemux;
 						sckint <= 1'b0;

@@ -22,7 +22,7 @@
 
 `include "io-s-h.v"
 
-module rtc_s #(
+module rtc #(
 	parameter PERIOD_STATIC = 0,
 	parameter ADDRESS = 0,
 	parameter BUS_ADDR_DATA_LEN = 16,

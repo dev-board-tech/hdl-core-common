@@ -32,11 +32,11 @@ module atmega_pll # (
 	input clk,
 	input clk_pll, // 192Mhz input.
 
-	input [BUS_ADDR_DATA_LEN-1:0]addr_dat,
-	input wr_dat,
-	input rd_dat,
-	input [7:0]bus_dat_in,
-	output reg [7:0]bus_dat_out,
+	input [BUS_ADDR_DATA_LEN-1:0]addr,
+	input wr,
+	input rd,
+	input [7:0]bus_in,
+	output reg [7:0]bus_out,
 	
 	output pll_enabled,
 
@@ -71,11 +71,11 @@ begin
 	else
 	begin
 		PLLCSR[0] <= PLLCSR[1]; // Make it ready
-		if(wr_dat)
+		if(wr)
 		begin
-			case(addr_dat)
-			PLLCSR_ADDR: PLLCSR <= bus_dat_in;
-			PLLFRQ_ADDR: PLLFRQ <= bus_dat_in;
+			case(addr)
+			PLLCSR_ADDR: PLLCSR <= bus_in;
+			PLLFRQ_ADDR: PLLFRQ <= bus_in;
 			endcase
 		end
 	end
@@ -195,12 +195,12 @@ end
 
 always @ *
 begin
-	bus_dat_out = 8'h00;
-	if(rd_dat & ~rst)
+	bus_out = 8'h00;
+	if(rd & ~rst)
 	begin
-		case(addr_dat)
-		PLLCSR_ADDR: bus_dat_out = PLLCSR;
-		PLLFRQ_ADDR: bus_dat_out = PLLFRQ;
+		case(addr)
+		PLLCSR_ADDR: bus_out = PLLCSR;
+		PLLFRQ_ADDR: bus_out = PLLFRQ;
 		endcase
 	end
 end

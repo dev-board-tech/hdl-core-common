@@ -69,16 +69,12 @@ module atmega_uart # (
 	)(
 	input rst,
 	input clk,
-	input [BUS_ADDR_IO_LEN-1:0]addr_io,
-	input wr_io,
-	input rd_io,
-	input [7:0]bus_io_in,
-	output reg [7:0]bus_io_out,
-	input [BUS_ADDR_DATA_LEN-1:0]addr_dat,
-	input wr_dat,
-	input rd_dat,
-	input [7:0]bus_dat_in,
-	output reg [7:0]bus_dat_out,
+	input [BUS_ADDR_DATA_LEN-1:0]addr,
+	input wr,
+	input rd,
+	input [7:0]bus_in,
+	output reg [7:0]bus_out,
+	
 	output rxc_int,
 	input rxc_int_rst,
 	output txc_int,
@@ -237,104 +233,6 @@ begin
 			txc_p <= 1'b0;
 			txc_n <= 1'b0;
 		end
-		if(wr_io)
-		begin
-			case(addr_io)
-				UDR_ADDR:
-				begin
-					if(UDR_ADDR < 'h40 && UDR_ADDR != 'h0)
-					begin
-						UDR_tx <= bus_io_in;
-						udre_p <= ~udre_n;
-					end
-				end
-				UCSRA_ADDR:
-				begin
-					if(UCSRA_ADDR < 'h40 && UCSRA_ADDR != 'h0)
-					begin
-						txc_n <= txc_p;
-						UCSRA[3:0] <= bus_io_in[3:0];
-					end
-				end
-				UCSRB_ADDR: 
-				begin
-					if(UCSRB_ADDR < 'h40 && UCSRB_ADDR != 'h0)
-					begin
-						UCSRB[7:2] <= bus_io_in[7:2];
-						UCSRB[0] <= bus_io_in[0];
-					end
-				end
-				UCSRC_ADDR: 
-				begin
-					if(UCSRC_ADDR < 'h40 && UCSRC_ADDR != 'h0)
-						UCSRC <= bus_io_in;
-				end
-				UCSRD_ADDR: 
-				begin
-					if(UCSRD_ADDR < 'h40 && UCSRD_ADDR != 'h0)
-						UCSRD <= bus_io_in;
-				end
-				UBRRL_ADDR: 
-				begin
-					if(UBRRL_ADDR < 'h40 && UBRRL_ADDR != 'h0)
-						UBRRL <= bus_io_in;
-				end
-				UBRRH_ADDR: 
-				begin
-					if(UBRRH_ADDR < 'h40 && UBRRH_ADDR != 'h0)
-						UBRRH <= bus_io_in;
-				end
-			endcase
-		end
-		if(wr_dat)
-		begin
-			case(addr_dat)
-				UDR_ADDR:
-				begin
-					if(UDR_ADDR >= 'h40 && UDR_ADDR != 'h0)
-					begin
-						UDR_tx <= bus_dat_in;
-						udre_p <= ~udre_n;
-					end
-				end
-				UCSRA_ADDR:
-				begin
-					if(UCSRA_ADDR >= 'h40 && UCSRA_ADDR != 'h0)
-					begin
-						txc_n <= txc_p;
-						UCSRA[3:0] <= bus_dat_in[3:0];
-					end
-				end
-				UCSRB_ADDR: 
-				begin
-					if(UCSRB_ADDR >= 'h40 && UCSRB_ADDR != 'h0)
-					begin
-						UCSRB[7:2] <= bus_dat_in[7:2];
-						UCSRB[0] <= bus_dat_in[0];
-					end
-				end
-				UCSRC_ADDR: 
-				begin
-					if(UCSRC_ADDR >= 'h40 && UCSRC_ADDR != 'h0)
-						UCSRC <= bus_dat_in;
-				end
-				UCSRD_ADDR: 
-				begin
-					if(UCSRD_ADDR >= 'h40 && UCSRD_ADDR != 'h0)
-						UCSRD <= bus_dat_in;
-				end
-				UBRRL_ADDR: 
-				begin
-					if(UBRRL_ADDR >= 'h40 && UBRRL_ADDR != 'h0)
-						UBRRL <= bus_dat_in;
-				end
-				UBRRH_ADDR: 
-				begin
-					if(UBRRH_ADDR >= 'h40 && UBRRH_ADDR != 'h0)
-						UBRRH <= bus_dat_in;
-				end
-			endcase
-		end
 		if(udre_int_rst)
 		begin
 			udre_int_n <= udre_int_p;
@@ -345,6 +243,30 @@ begin
 		end
 		if(~udre_old & UCSRA[`UDRE])
 			udre_int_p <= ~udre_int_n;
+	end
+	if(wr)
+	begin
+		case(addr)
+			UDR_ADDR:
+			begin
+				UDR_tx <= bus_in;
+				udre_p <= ~udre_n;
+			end
+			UCSRA_ADDR:
+			begin
+				txc_n <= txc_p;
+				UCSRA[3:0] <= bus_in[3:0];
+			end
+			UCSRB_ADDR: 
+			begin
+				UCSRB[7:2] <= bus_in[7:2];
+				UCSRB[0] <= bus_in[0];
+			end
+			UCSRC_ADDR: UCSRC <= bus_in;
+			UCSRD_ADDR: UCSRD <= bus_in;
+			UBRRL_ADDR: UBRRL <= bus_in;
+			UBRRH_ADDR: UBRRH <= bus_in;
+		endcase
 	end
 end
 
@@ -536,19 +458,9 @@ begin
 			rxc_p <= 1'b0;
 			rxc_n <= 1'b0;
 		end
-		if(rd_io)
+		if(rd)
 		begin
-			case(addr_io)
-				UDR_ADDR: 
-				begin
-					if(UDR_ADDR < 'h40)
-						rxc_n <= rxc_p;
-				end
-			endcase
-		end
-		if(rd_dat)
-		begin
-			case(addr_dat)
+			case(addr)
 				UDR_ADDR: 
 				begin
 					if(UDR_ADDR >= 'h40)
@@ -571,91 +483,21 @@ always @ *
 begin
 	if(rst)
 	begin
-		bus_io_out = 8'b0;
-		bus_dat_out = 8'b0;
+		bus_out = 8'b0;
 	end
 	else
 	begin
-		bus_io_out = 8'b0;
-		bus_dat_out = 8'b0;
-		if(rd_io)
+		bus_out = 8'b0;
+		if(rd)
 		begin
-			case(addr_io)
-				UDR_ADDR: 
-				begin
-					if(UDR_ADDR < 'h40 && UDR_ADDR != 'h0)
-						bus_io_out = UDR_rx;
-				end
-				UCSRA_ADDR: 
-				begin
-					if(UCSRA_ADDR < 'h40 && UCSRA_ADDR != 'h0)
-						bus_io_out = UCSRA;
-				end
-				UCSRB_ADDR: 
-				begin
-					if(UCSRB_ADDR < 'h40 && UCSRB_ADDR != 'h0)
-						bus_io_out = UCSRB;
-				end
-				UCSRC_ADDR: 
-				begin
-					if(UCSRC_ADDR < 'h40 && UCSRC_ADDR != 'h0)
-						bus_io_out = UCSRC;
-				end
-				UCSRD_ADDR: 
-				begin
-					if(UCSRD_ADDR < 'h40 && UCSRD_ADDR != 'h0)
-						bus_io_out = UCSRD;
-				end
-				UBRRL_ADDR: 
-				begin
-					if(UBRRL_ADDR < 'h40 && UBRRL_ADDR != 'h0)
-						bus_io_out = UBRRL;
-				end
-				UBRRH_ADDR: 
-				begin
-					if(UBRRH_ADDR < 'h40 && UBRRH_ADDR != 'h0)
-						bus_io_out = UBRRH;
-				end
-			endcase
-		end
-		if(rd_dat)
-		begin
-			case(addr_dat)
-				UDR_ADDR: 
-				begin
-					if(UDR_ADDR >= 'h40 && UDR_ADDR != 'h0)
-						bus_dat_out = UDR_rx;
-				end
-				UCSRA_ADDR: 
-				begin
-					if(UCSRA_ADDR >= 'h40 && UCSRA_ADDR != 'h0)
-						bus_dat_out = UCSRA;
-				end
-				UCSRB_ADDR: 
-				begin
-					if(UCSRB_ADDR >= 'h40 && UCSRB_ADDR != 'h0)
-						bus_dat_out = UCSRB;
-				end
-				UCSRC_ADDR: 
-				begin
-					if(UCSRC_ADDR >= 'h40 && UCSRC_ADDR != 'h0)
-						bus_dat_out = UCSRC;
-				end
-				UCSRD_ADDR: 
-				begin
-					if(UCSRD_ADDR >= 'h40 && UCSRD_ADDR != 'h0)
-						bus_dat_out = UCSRD;
-				end
-				UBRRL_ADDR: 
-				begin
-					if(UBRRL_ADDR >= 'h40 && UBRRL_ADDR != 'h0)
-						bus_dat_out = UBRRL;
-				end
-				UBRRH_ADDR: 
-				begin
-					if(UBRRH_ADDR >= 'h40 && UBRRH_ADDR != 'h0)
-						bus_dat_out = UBRRH;
-				end
+			case(addr)
+				UDR_ADDR: bus_out = UDR_rx;
+				UCSRA_ADDR: bus_out = UCSRA;
+				UCSRB_ADDR: bus_out = UCSRB;
+				UCSRC_ADDR: bus_out = UCSRC;
+				UCSRD_ADDR: bus_out = UCSRD;
+				UBRRL_ADDR: bus_out = UBRRL;
+				UBRRH_ADDR: bus_out = UBRRH;
 			endcase
 		end
 	end

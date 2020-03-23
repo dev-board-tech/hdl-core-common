@@ -80,11 +80,12 @@ module atmega_tim_8bit # (
 	input clk64,
 	input clk256,
 	input clk1024,
-	input [BUS_ADDR_DATA_LEN-1:0]addr_dat,
-	input wr_dat,
-	input rd_dat,
-	input [7:0]bus_dat_in,
-	output reg [7:0]bus_dat_out,
+	input [BUS_ADDR_DATA_LEN-1:0]addr,
+	input wr,
+	input rd,
+	input [7:0]bus_in,
+	output reg [7:0]bus_out,
+	
 	output tov_int,
 	input tov_int_rst,
 	output ocra_int,
@@ -204,25 +205,25 @@ always @ *
 begin
 	if(rst)
 	begin
-		bus_dat_out = 8'h00;
+		bus_out = 8'h00;
 	end
 	else
 	begin
-		bus_dat_out = 8'h00;
-		if(rd_dat)
+		bus_out = 8'h00;
+		if(rd)
 		begin
-			case(addr_dat)
+			case(addr)
 				//GTCCR_ADDR: bus_io_out = GTCCR;
-				TCCRA_ADDR: bus_dat_out = TCCRA;
-				TCCRB_ADDR: bus_dat_out = TCCRB;
-				TCNT_ADDR: bus_dat_out = TCNT;
-				OCRA_ADDR: bus_dat_out = OCRA;
-				OCRB_ADDR: bus_dat_out = OCRB;
-				TIFR_ADDR: bus_dat_out = TIFR;
+				TCCRA_ADDR: bus_out = TCCRA;
+				TCCRB_ADDR: bus_out = TCCRB;
+				TCNT_ADDR: bus_out = TCNT;
+				OCRA_ADDR: bus_out = OCRA;
+				OCRB_ADDR: bus_out = OCRB;
+				TIFR_ADDR: bus_out = TIFR;
 			endcase
 		end
-		if(rd_dat & addr_dat == TIMSK_ADDR)
-			bus_dat_out = TIMSK;
+		if(rd & addr == TIMSK_ADDR)
+			bus_out = TIMSK;
 	end
 end
 
@@ -421,20 +422,20 @@ begin
 			end
 		end
 		// Write registers
-		if(wr_dat)
+		if(wr)
 		begin
-			case(addr_dat)
+			case(addr)
 				//GTCCR_ADDR: GTCCR <= bus_io_in;
-				TCCRA_ADDR: TCCRA <= bus_dat_in;
-				TCCRB_ADDR: TCCRB <= bus_dat_in;
-				TCNT_ADDR: TCNT <= bus_dat_in;
-				OCRA_ADDR: OCRA <= bus_dat_in;
-				OCRB_ADDR: OCRB <= bus_dat_in;
-				TIFR_ADDR: TIFR <= TIFR & ~bus_dat_in;
+				TCCRA_ADDR: TCCRA <= bus_in;
+				TCCRB_ADDR: TCCRB <= bus_in;
+				TCNT_ADDR: TCNT <= bus_in;
+				OCRA_ADDR: OCRA <= bus_in;
+				OCRB_ADDR: OCRB <= bus_in;
+				TIFR_ADDR: TIFR <= TIFR & ~bus_in;
 			endcase
 		end
-		if(wr_dat & addr_dat == TIMSK_ADDR)
-			TIMSK <= bus_dat_in;
+		if(wr & addr == TIMSK_ADDR)
+			TIMSK <= bus_in;
 	end
 end
 
