@@ -47,7 +47,6 @@ module atmega_spi_m # (
 	parameter USE_RX = "TRUE"
 )(
 	input rst,
-	input halt,
 	input clk,
 
 	input [BUS_ADDR_DATA_LEN-1:0]addr,
@@ -142,7 +141,7 @@ begin
 	end
 	else
 	begin
-		if(&{SPCR[`ATMEGA_SPI_SPCR_EN_bp], spi_active, ~halt})
+		if(&{SPCR[`ATMEGA_SPI_SPCR_EN_bp], spi_active})
 		begin
 			if(prescaller_cnt & BAUDRATE_CNT_LEN != 0)
 			begin

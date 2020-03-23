@@ -74,7 +74,6 @@ module atmega_tim_8bit # (
 	parameter TIFR_ADDR = 'h35
 )(
 	input rst,
-	input halt,
 	input clk,
 	input clk8,
 	input clk64,
@@ -286,10 +285,10 @@ begin
 		clk_int_del <= clk_int; // Shift prescaller clock to a delay register every IO core positive edge clock to detect prescaller positive edges.
 		if(((~clk_int_del & clk_int) || TCCRB[`CS02:`CS00] == 3'b001) && TCCRB[`CS02:`CS00] != 3'b000) // if prescaller clock = IO core clock disable prescaller positive edge detector.
 		begin
-			if(up_count & ~halt)
+			if(up_count)
 				TCNT <= TCNT + 8'd1;
 			else
-			if(~up_count & ~halt)
+			if(~up_count)
 				TCNT <= TCNT - 8'd1;
 			// OCRA
 			if(updt_ocr_on_top ? (TCNT == 8'hff):(TCNT == OCRA_int))
@@ -386,7 +385,7 @@ begin
 				end
 			end // USE_OCRB != "TRUE"
 			// TCNT overflow logick.
-			if(&{TCNT == t_ovf_value, ~halt})
+			if(TCNT == t_ovf_value)
 			begin
 				if(TIMSK[`TOIE0] == 1'b1)
 				begin
@@ -399,7 +398,7 @@ begin
 					tov_n <= 1'b0;
 				end
 			end
-			if(&{TCNT == top_value, ~halt})
+			if(TCNT == top_value)
 			begin
 				case({TCCRB[`WGM02], TCCRA[`WGM01:`WGM00]})
 					3'h1, 3'h5: 
@@ -410,7 +409,7 @@ begin
 					default: TCNT <= 8'h00;
 				endcase
 			end
-			else if(&{TCNT == 8'h00, ~halt})
+			else if(TCNT == 8'h00)
 			begin
 				case({TCCRB[`WGM02], TCCRA[`WGM01:`WGM00]})
 					3'h1, 3'h5: 

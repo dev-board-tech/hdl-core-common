@@ -99,7 +99,6 @@ module atmega_tim_10bit # (
 	parameter TIFR_ADDR = 'h39
 )(
 	input rst,
-	input halt,
 	input clk,
 	input clk_pll,
 	input pll_enabled,
@@ -369,9 +368,9 @@ begin
 		clk_int_del <= clk_int; // Shift prescaller clock to a delay register every IO core positive edge clock to detect prescaller positive edges.
 		if(((~clk_int_del & clk_int) || TCCRB[`CS03:`CS00] == 4'b0001) && TCCRB[`CS03:`CS00] != 4'b0000) // If prescaller is 1 we bypass the prescaller clock edge detector, if 0, we disable the timer, if pll is disabled, the counter clock is maximum clk/2.
 		begin
-			if(up_count & ~halt)
+			if(up_count)
 				{TCH, TCNTL} <= {TCH, TCNTL} + 10'd1;
-			else if(~up_count & ~halt)
+			else if(~up_count)
 				{TCH, TCNTL} <= {TCH, TCNTL} - 10'd1;
 			// OCRA
 			if(updt_ocr_on_top ? ({TCH, TCNTL} == top_value) : (updt_ocr_on_bottom ? ({TCH, TCNTL} == 10'h000) : ({TCH, TCNTL} == OCRA_int)))
@@ -566,7 +565,7 @@ begin
 					oca <= 1'b0;
 			end // USE_OCRD != "TRUE"
 			// TCNT overflow logick.
-			if(&{{TCH, TCNTL} == t_ovf_value, ~halt})
+			if({TCH, TCNTL} == t_ovf_value)
 			begin
 				if(TIMSK[`TOIE0])
 				begin
@@ -579,7 +578,7 @@ begin
 					tov_n <= 1'b0;
 				end
 			end
-			if(&{{TCH, TCNTL} == top_value, ~halt})
+			if({TCH, TCNTL} == top_value)
 			begin
 				case({TCCRB[`PWM4X], TCCRD[`WGM01:`WGM00]})
 					3'b101:
@@ -590,7 +589,7 @@ begin
 					default: {TCH, TCNTL} <= 10'h000;
 				endcase
 			end
-			else if(&{{TCH, TCNTL} == 10'h000, ~halt})
+			else if({TCH, TCNTL} == 10'h000)
 			begin
 				case({TCCRB[`PWM4X], TCCRD[`WGM01:`WGM00]})
 					3'b101:

@@ -103,7 +103,6 @@ module atmega_tim_16bit # (
 	parameter TIFR_ADDR = 'h36
 )(
 	input rst,
-	input halt,
 	input clk,
 	input clk8,
 	input clk64,
@@ -435,9 +434,9 @@ begin
 		clk_int_del <= clk_int; // Shift prescaller clock to a delay register every IO core positive edge clock to detect prescaller positive edges.
 		if(((~clk_int_del & clk_int) || TCCRB[`CS02:`CS00] == 3'b001) && TCCRB[`CS02:`CS00] != 3'b000) // if prescaller clock = IO core clock disable prescaller positive edge detector.
 		begin
-			if(up_count & ~halt)
+			if(up_count)
 				{TCNTH, TCNTL} <= {TCNTH, TCNTL} + 16'd1;
-			else if(~up_count & ~halt)
+			else if(~up_count)
 				{TCNTH, TCNTL} <= {TCNTH, TCNTL} - 16'd1;
 			// OCRA
 			if(updt_ocr_on_top ? ({TCNTH, TCNTL} == top_value) : (updt_ocr_on_bottom ? ({TCNTH, TCNTL} == 10'h000) : ({TCNTH, TCNTL} == OCRA_int)))
@@ -630,7 +629,7 @@ begin
 				end
 			end // USE_OCRD != "TRUE"
 			// TCNT overflow logick.
-			if(&{{TCNTH, TCNTL} == t_ovf_value, ~halt})
+			if({TCNTH, TCNTL} == t_ovf_value)
 			begin
 				if(TIMSK[`TOIE0])
 				begin
@@ -643,7 +642,7 @@ begin
 					tov_n <= 1'b0;
 				end
 			end
-			if(&{{TCNTH, TCNTL} == top_value, ~halt})
+			if({TCNTH, TCNTL} == top_value)
 			begin
 				case({TCCRB[`WGM03:`WGM02], TCCRA[`WGM01:`WGM00]})
 					4'd1, 4'd2, 4'd3, 4'd8, 4'd9, 4'd10, 4'd11:
@@ -654,7 +653,7 @@ begin
 					default: {TCNTH, TCNTL} <= 16'h0000;
 				endcase
 			end
-			else if(&{{TCNTH, TCNTL} == 16'h0000, ~halt})
+			else if({TCNTH, TCNTL} == 16'h0000)
 			begin
 				case({TCCRB[`WGM03:`WGM02], TCCRA[`WGM01:`WGM00]})
 					4'd1, 4'd2, 4'd3, 4'd8, 4'd9, 4'd10, 4'd11: 
