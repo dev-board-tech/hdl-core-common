@@ -71,7 +71,8 @@ module atmega_tim_8bit # (
 	parameter OCRA_ADDR = 'h47,
 	parameter OCRB_ADDR = 'h48,
 	parameter TIMSK_ADDR = 'h6E,
-	parameter TIFR_ADDR = 'h35
+	parameter TIFR_ADDR = 'h35,
+	parameter INCREMENT_VALUE = 1
 )(
 	input rst,
 	input clk,
@@ -184,8 +185,8 @@ reg [7:0]top_value;
 always @ *
 begin
 	case({TCCRB[`WGM02], TCCRA[`WGM01:`WGM00]})
-		3'h2, 3'h5, 3'h7: top_value = OCRA_int;
-		default: top_value = 8'hff;
+		3'h2, 3'h5, 3'h7: top_value = INCREMENT_VALUE == 2 ? {OCRA_int[7:1], 1'b0} : OCRA_int;
+		default: top_value = INCREMENT_VALUE == 2 ? 8'hfe : 8'hff;
 	endcase
 end
 
@@ -194,7 +195,7 @@ always @ *
 begin
 	case({TCCRB[`WGM02], TCCRA[`WGM01:`WGM00]})
 		3'd7: t_ovf_value = top_value;
-		3'd0, 3'd2, 3'd3: t_ovf_value = 8'hFF;
+		3'd0, 3'd2, 3'd3: t_ovf_value = INCREMENT_VALUE == 2 ? 8'hfe : 8'hFF;
 		default: t_ovf_value = 8'h00;
 	endcase
 end
@@ -286,13 +287,13 @@ begin
 		if(((~clk_int_del & clk_int) || TCCRB[`CS02:`CS00] == 3'b001) && TCCRB[`CS02:`CS00] != 3'b000) // if prescaller clock = IO core clock disable prescaller positive edge detector.
 		begin
 			if(up_count)
-				TCNT <= TCNT + 8'd1;
+				TCNT <= TCNT + INCREMENT_VALUE;
 			else
 			if(~up_count)
-				TCNT <= TCNT - 8'd1;
+				TCNT <= TCNT - INCREMENT_VALUE;
 			// OCRA
 			if(updt_ocr_on_top ? (TCNT == 8'hff):(TCNT == OCRA_int))
-				OCRA_int <= OCRA;
+				OCRA_int <= INCREMENT_VALUE == 2 ? {OCRA[7:1], 1'b0} : OCRA;
 			if(TCNT == OCRA_int)
 			begin
 				case({TCCRB[`WGM02], TCCRA[`WGM01:`WGM00]})
@@ -301,7 +302,7 @@ begin
 					begin
 						case(OCRA_int)
 							8'h00:	oca <= 1'b0;
-							8'hFF:	oca <= 1'b1;
+							(INCREMENT_VALUE == 2 ? 8'hFE : 8'hFF):	oca <= 1'b1;
 							default:
 							begin
 								if(up_count)
@@ -340,7 +341,7 @@ begin
 			begin
 				// OCRB
 				if(updt_ocr_on_top ? (TCNT == 8'hff):(TCNT == OCRB_int))
-					OCRB_int <= OCRB;
+					OCRB_int <= INCREMENT_VALUE == 2 ? {OCRB[7:1], 1'b0} : OCRB;
 				if(TCNT == OCRB_int)
 				begin
 					case({TCCRB[`WGM02], TCCRA[`WGM01:`WGM00]})
@@ -349,7 +350,7 @@ begin
 						begin
 							case(OCRB_int)
 								8'h00:	ocb <= 1'b0;
-								8'hFF:	ocb <= 1'b1;
+								(INCREMENT_VALUE == 2 ? 8'hFE : 8'hFF):	ocb <= 1'b1;
 								default:
 								begin
 									if(up_count)
@@ -404,7 +405,7 @@ begin
 					3'h1, 3'h5: 
 					begin
 						up_count <= 1'b0;
-						TCNT <= TCNT - 8'd1;
+						TCNT <= TCNT - INCREMENT_VALUE;
 					end 
 					default: TCNT <= 8'h00;
 				endcase
@@ -415,7 +416,7 @@ begin
 					3'h1, 3'h5: 
 					begin
 						up_count <= 1'b1;
-						TCNT <= TCNT + 8'd1;
+						TCNT <= TCNT + INCREMENT_VALUE;
 					end 
 				endcase
 			end
@@ -427,9 +428,9 @@ begin
 				//GTCCR_ADDR: GTCCR <= bus_io_in;
 				TCCRA_ADDR: TCCRA <= bus_in;
 				TCCRB_ADDR: TCCRB <= bus_in;
-				TCNT_ADDR: TCNT <= bus_in;
-				OCRA_ADDR: OCRA <= bus_in;
-				OCRB_ADDR: OCRB <= bus_in;
+				TCNT_ADDR: TCNT <= INCREMENT_VALUE == 2 ? {bus_in[7:1], 1'b0} : bus_in;
+				OCRA_ADDR: OCRA <= INCREMENT_VALUE == 2 ? {bus_in[7:1], 1'b0} : bus_in;
+				OCRB_ADDR: OCRB <= INCREMENT_VALUE == 2 ? {bus_in[7:1], 1'b0} : bus_in;
 				TIFR_ADDR: TIFR <= TIFR & ~bus_in;
 			endcase
 		end

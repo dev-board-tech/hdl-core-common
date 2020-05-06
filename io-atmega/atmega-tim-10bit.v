@@ -96,7 +96,8 @@ module atmega_tim_10bit # (
 	parameter OCRC_ADDR = 'hd1,
 	parameter OCRD_ADDR = 'hd2,
 	parameter TIMSK_ADDR = 'h72,
-	parameter TIFR_ADDR = 'h39
+	parameter TIFR_ADDR = 'h39,
+	parameter INCREMENT_VALUE = 1
 )(
 	input rst,
 	input clk,
@@ -183,7 +184,7 @@ reg [13:0]presc_cnt;
 always @(posedge rst or posedge clk_pll)
 begin
 	if(rst)
-		presc_cnt <= 10'h000;
+		presc_cnt <= 14'h000;
 	else
 		presc_cnt <= presc_cnt + 14'd1;
 end
@@ -369,9 +370,9 @@ begin
 		if(((~clk_int_del & clk_int) || TCCRB[`CS03:`CS00] == 4'b0001) && TCCRB[`CS03:`CS00] != 4'b0000) // If prescaller is 1 we bypass the prescaller clock edge detector, if 0, we disable the timer, if pll is disabled, the counter clock is maximum clk/2.
 		begin
 			if(up_count)
-				{TCH, TCNTL} <= {TCH, TCNTL} + 10'd1;
+				{TCH, TCNTL} <= {TCH, TCNTL} + INCREMENT_VALUE;
 			else if(~up_count)
-				{TCH, TCNTL} <= {TCH, TCNTL} - 10'd1;
+				{TCH, TCNTL} <= {TCH, TCNTL} - INCREMENT_VALUE;
 			// OCRA
 			if(updt_ocr_on_top ? ({TCH, TCNTL} == top_value) : (updt_ocr_on_bottom ? ({TCH, TCNTL} == 10'h000) : ({TCH, TCNTL} == OCRA_int)))
 				OCRA_int = OCRA;
@@ -584,7 +585,7 @@ begin
 					3'b101:
 					begin
 						up_count <= 1'b0;
-						{TCH, TCNTL} <= {TCH, TCNTL} - 10'd1;
+						{TCH, TCNTL} <= {TCH, TCNTL} - INCREMENT_VALUE;
 					end 
 					default: {TCH, TCNTL} <= 10'h000;
 				endcase
@@ -595,7 +596,7 @@ begin
 					3'b101:
 					begin
 						up_count <= 1'b1;
-						{TCH, TCNTL} <= {TCH, TCNTL} + 10'd1;
+						{TCH, TCNTL} <= {TCH, TCNTL} + INCREMENT_VALUE;
 					end 
 				endcase
 			end
@@ -623,18 +624,18 @@ begin
 					OCRA_ADDR:
 					begin
 						if(USE_OCRA == "TRUE")
-							OCRA <= {TMP_REG, bus_in};
+							OCRA <= {TMP_REG, INCREMENT_VALUE == 2 ? {bus_in[7:1], 1'b0} : bus_in};
 					end
 					OCRB_ADDR:
 					begin
 						if(USE_OCRB == "TRUE")
-							OCRB <= {TMP_REG, bus_in};
+							OCRB <= {TMP_REG, INCREMENT_VALUE == 2 ? {bus_in[7:1], 1'b0} : bus_in};
 					end
-					OCRC_ADDR: OCRC <= {TMP_REG, bus_in};
+					OCRC_ADDR: OCRC <= {TMP_REG, INCREMENT_VALUE == 2 ? {bus_in[7:1], 1'b0} : bus_in};
 					OCRD_ADDR:
 					begin
 						if(USE_OCRD == "TRUE")
-							OCRD <= {TMP_REG, bus_in};
+							OCRD <= {TMP_REG, INCREMENT_VALUE == 2 ? {bus_in[7:1], 1'b0} : bus_in};
 					end
 					TIMSK_ADDR: TIMSK <= bus_in;
 				endcase

@@ -245,7 +245,7 @@ end
 
 assign int = SPCR[`ATMEGA_SPI_SPCR_INT_EN_bp] ? SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] : 1'b0;
 assign scl = SPCR[`ATMEGA_SPI_SPCR_EN_bp] ? ((SPCR[`ATMEGA_SPI_SPCR_CPOL_bp]) ? (sck_active ? ~sckint : 1'b1) : (sck_active ? sckint : 1'b0)) : 1'b1;
-assign mosi = (SPCR[`ATMEGA_SPI_SPCR_EN_bp]) ? (SPCR[`ATMEGA_SPI_SPCR_DORD_bp] ? tx_shift_reg[0] : tx_shift_reg[WORD_LEN - 1]) : 1'b1;
+assign mosi = (SPCR[`ATMEGA_SPI_SPCR_EN_bp] & sck_active) ? (SPCR[`ATMEGA_SPI_SPCR_DORD_bp] ? tx_shift_reg[0] : tx_shift_reg[WORD_LEN - 1]) : 1'b1;
 assign io_connect = SPCR[`ATMEGA_SPI_SPCR_EN_bp];
 assign io_conn_slave = ~SPCR[`ATMEGA_SPI_SPCR_MSTR_bp];
 

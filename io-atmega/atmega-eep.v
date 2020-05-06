@@ -110,6 +110,7 @@ begin
 	end
 	else
 	begin
+		content_modifyed <= 1'b0;
 		eep_wr <= 1'b0;
 		if(eempe_timeout_cnt)
 		begin

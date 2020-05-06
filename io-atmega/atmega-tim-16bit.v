@@ -100,7 +100,8 @@ module atmega_tim_16bit # (
 	parameter OCRDL_ADDR = 'h0,
 	parameter OCRDH_ADDR = 'h0,
 	parameter TIMSK_ADDR = 'h6F,
-	parameter TIFR_ADDR = 'h36
+	parameter TIFR_ADDR = 'h36,
+	parameter INCREMENT_VALUE = 1
 )(
 	input rst,
 	input clk,
@@ -255,10 +256,10 @@ reg [15:0]top_value;
 always @ *
 begin
 	case({TCCRB[`WGM03:`WGM02], TCCRA[`WGM01:`WGM00]})
-		4'd0: top_value = 16'hFFFF;
-		4'd1, 4'd5: top_value = 16'h00FF;
-		4'd2, 4'd6: top_value = 16'h01FF;
-		4'd3, 4'd7: top_value = 16'h03FF;
+		4'd0: top_value = INCREMENT_VALUE == 2 ? 16'hFFFE : 16'hFFFF;
+		4'd1, 4'd5: top_value = INCREMENT_VALUE == 2 ? 16'h00FE : 16'h00FF;
+		4'd2, 4'd6: top_value = INCREMENT_VALUE == 2 ? 16'h01FE : 16'h01FF;
+		4'd3, 4'd7: top_value = INCREMENT_VALUE == 2 ? 16'h03FE : 16'h03FF;
 		//4'd8, 4'd10, 4'd12, 4'd14: top_value = {ICRH, ICRL};
 		default: top_value = OCRA_int;
 	endcase
@@ -269,7 +270,7 @@ always @ *
 begin
 	case({TCCRB[`WGM03:`WGM02], TCCRA[`WGM01:`WGM00]})
 		4'd5, 4'd6, 4'd7, 4'd14, 4'd15: t_ovf_value = top_value;
-		4'd0, 4'd4, 4'd12: t_ovf_value = 16'hFFFF;
+		4'd0, 4'd4, 4'd12: t_ovf_value = INCREMENT_VALUE == 2 ? 16'hFFFE : 16'hFFFF;
 		default: t_ovf_value = 16'h0000;
 	endcase
 end
@@ -435,9 +436,9 @@ begin
 		if(((~clk_int_del & clk_int) || TCCRB[`CS02:`CS00] == 3'b001) && TCCRB[`CS02:`CS00] != 3'b000) // if prescaller clock = IO core clock disable prescaller positive edge detector.
 		begin
 			if(up_count)
-				{TCNTH, TCNTL} <= {TCNTH, TCNTL} + 16'd1;
+				{TCNTH, TCNTL} <= {TCNTH, TCNTL} + INCREMENT_VALUE;
 			else if(~up_count)
-				{TCNTH, TCNTL} <= {TCNTH, TCNTL} - 16'd1;
+				{TCNTH, TCNTL} <= {TCNTH, TCNTL} - INCREMENT_VALUE;
 			// OCRA
 			if(updt_ocr_on_top ? ({TCNTH, TCNTL} == top_value) : (updt_ocr_on_bottom ? ({TCNTH, TCNTL} == 10'h000) : ({TCNTH, TCNTL} == OCRA_int)))
 				OCRA_int <= {OCRAH, OCRAL};
@@ -648,7 +649,7 @@ begin
 					4'd1, 4'd2, 4'd3, 4'd8, 4'd9, 4'd10, 4'd11:
 					begin
 						up_count <= 1'b0;
-						{TCNTH, TCNTL} <= {TCNTH, TCNTL} - 16'd1;
+						{TCNTH, TCNTL} <= {TCNTH, TCNTL} - INCREMENT_VALUE;
 					end 
 					default: {TCNTH, TCNTL} <= 16'h0000;
 				endcase
@@ -659,7 +660,7 @@ begin
 					4'd1, 4'd2, 4'd3, 4'd8, 4'd9, 4'd10, 4'd11: 
 					begin
 						up_count <= 1'b1;
-						{TCNTH, TCNTL} <= {TCNTH, TCNTL} + 16'd1;
+						{TCNTH, TCNTL} <= {TCNTH, TCNTL} + INCREMENT_VALUE;
 					end 
 				endcase
 			end
@@ -679,7 +680,7 @@ begin
 				TCCRD_ADDR[3:0]: TCCRD <= bus_in;
 				TCNTL_ADDR[3:0]:
 				begin
-					TCNTL <= bus_in;
+					TCNTL <= INCREMENT_VALUE == 2 ? {bus_in[7:1], 1'b0} : bus_in;
 					TCNTH <= TMP_REG_wr;
 				end
 				/*ICRL_ADDR[3:0]:
@@ -689,14 +690,14 @@ begin
 				end*/
 				OCRAL_ADDR[3:0]:
 				begin
-					OCRAL <= bus_in;
+					OCRAL <= INCREMENT_VALUE == 2 ? {bus_in[7:1], 1'b0} : bus_in;
 					OCRAH <= TMP_REG_wr;
 				end
 				OCRBL_ADDR[3:0]:
 				begin
 					if(USE_OCRB == "TRUE")
 					begin
-						OCRBL <= bus_in;
+						OCRBL <= INCREMENT_VALUE == 2 ? {bus_in[7:1], 1'b0} : bus_in;
 						OCRBH <= TMP_REG_wr;
 					end
 				end
@@ -704,7 +705,7 @@ begin
 				begin
 					if(USE_OCRC == "TRUE")
 					begin
-						OCRCL <= bus_in;
+						OCRCL <= INCREMENT_VALUE == 2 ? {bus_in[7:1], 1'b0} : bus_in;
 						OCRCH <= TMP_REG_wr;
 					end
 				end
@@ -712,7 +713,7 @@ begin
 				begin
 					if(USE_OCRD == "TRUE")
 					begin
-						OCRDL <= bus_in;
+						OCRDL <= INCREMENT_VALUE == 2 ? {bus_in[7:1], 1'b0} : bus_in;
 						OCRDH <= TMP_REG_wr;
 					end
 				end
