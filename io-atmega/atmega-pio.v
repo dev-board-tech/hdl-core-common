@@ -29,9 +29,12 @@ module atmega_pio # (
 	parameter PLATFORM = "XILINX",
 	parameter BUS_ADDR_DATA_LEN = 8,
 	parameter PORT_WIDTH = 8,
-	parameter PORT_OUT_ADDR = 'h20,
-	parameter DDR_ADDR = 'h23,
-	parameter PIN_ADDR = 'h24,
+	parameter USE_CLEAR_SET = "FALSE",
+	parameter PORT_OUT_ADDR = 'h00,
+	parameter PORT_CLEAR_ADDR = 'h01,	
+	parameter PORT_SET_ADDR = 'h02,
+	parameter DDR_ADDR = 'h03,
+	parameter PIN_ADDR = 'h04,
 	parameter PINMASK = 'hFF,
 	parameter PULLUP_MASK = 'h0,
 	parameter PULLDN_MASK = 'h0,
@@ -79,8 +82,18 @@ begin
 				if(wr)
 				begin
 					case(addr[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT])
-					DDR_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: DDR[cnt_int] <= bus_in[cnt_int];
-					PORT_OUT_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: PORT[cnt_int] <= bus_in[cnt_int];
+						DDR_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: DDR[cnt_int] <= bus_in[cnt_int];
+						PORT_OUT_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: PORT[cnt_int] <= bus_in[cnt_int];
+						PORT_CLEAR_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: 	
+						begin	
+							if(USE_CLEAR_SET == "TRUE")	
+								PORT[cnt_int] <= PORT[cnt_int] & ~bus_in[cnt_int];	
+						end	
+						PORT_SET_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: 	
+						begin	
+							if(USE_CLEAR_SET == "TRUE")	
+								PORT[cnt_int] <= PORT[cnt_int] | bus_in[cnt_int];	
+						end					
 					endcase
 				end
 			end
