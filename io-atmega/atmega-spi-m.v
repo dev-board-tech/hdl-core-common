@@ -203,7 +203,16 @@ begin
 		if(rd)
 		begin
 			case(addr)
-			SPSR_ADDR: SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] <= 1'b0;
+			SPSR_ADDR: 
+			begin
+				SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] <= 1'b0;
+				if(stc_p ^ stc_n)// In case of a read at the same time with a transmision complete.
+				begin
+					SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] <= 1'b1;
+					stc_n <= stc_p;
+					sck_active <= 1'b0;
+				end	
+			end
 			endcase
 		end
 		else
