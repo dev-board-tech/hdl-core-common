@@ -40,7 +40,8 @@ module atmega_pio # (
 	parameter PULLDN_MASK = 'h0,
 	parameter INVERSE_MASK = 'h0,
 	parameter OUT_ENABLED_MASK = 'hFF,
-	parameter INITIAL_OUTPUT_VALUE = 'h00
+	parameter INITIAL_OUTPUT_VALUE = 'h00,
+	parameter INITIAL_DIR_VALUE = 'h00
 )(
 	input rst,
 	input clk,
@@ -68,7 +69,7 @@ always @ (posedge clk)
 begin
 	if(rst)
 	begin
-		DDR <= 0;
+		DDR <= INITIAL_DIR_VALUE;
 		PORT <= INITIAL_OUTPUT_VALUE;
 		PIN <=  0;
 	end
