@@ -43,18 +43,18 @@ module atmega_pio # (
 	parameter INITIAL_OUTPUT_VALUE = 'h00,
 	parameter INITIAL_DIR_VALUE = 'h00
 )(
-	input rst,
-	input clk,
+	input rst_i,
+	input clk_i,
 
-	input [BUS_ADDR_DATA_LEN-1:0]addr,
-	input wr,
-	input rd,
-	input [PORT_WIDTH - 1:0]bus_in,
-	output reg [PORT_WIDTH - 1:0]bus_out,
+	input [BUS_ADDR_DATA_LEN-1:0]addr_i,
+	input wr_i,
+	input rd_i,
+	input [PORT_WIDTH - 1:0]bus_i,
+	output reg [PORT_WIDTH - 1:0]bus_o,
 
-	input [PORT_WIDTH - 1:0]io_in,
-	output [PORT_WIDTH - 1:0]io_out,
-	output [PORT_WIDTH - 1:0]pio_out_io_connect
+	input [PORT_WIDTH - 1:0]io_i,
+	output [PORT_WIDTH - 1:0]io_o,
+	output [PORT_WIDTH - 1:0]pio_out_io_connect_o
 	);
 
 reg [PORT_WIDTH - 1:0]DDR;
@@ -65,9 +65,9 @@ localparam BUS_LEN_SHIFT = PORT_WIDTH > 16 ? 2 : (PORT_WIDTH > 8 ? 1 : 0);
 
 integer cnt_int;
 
-always @ (posedge clk)
+always @ (posedge clk_i)
 begin
-	if(rst)
+	if(rst_i)
 	begin
 		DDR <= INITIAL_DIR_VALUE;
 		PORT <= INITIAL_OUTPUT_VALUE;
@@ -79,21 +79,21 @@ begin
 		begin
 			if (PINMASK[cnt_int])
 			begin
-				PIN[cnt_int] <= io_in[cnt_int];
-				if(wr)
+				PIN[cnt_int] <= io_i[cnt_int];
+				if(wr_i)
 				begin
-					case(addr[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT])
-						DDR_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: DDR[cnt_int] <= bus_in[cnt_int];
-						PORT_OUT_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: PORT[cnt_int] <= bus_in[cnt_int];
+					case(addr_i[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT])
+						DDR_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: DDR[cnt_int] <= bus_i[cnt_int];
+						PORT_OUT_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: PORT[cnt_int] <= bus_i[cnt_int];
 						PORT_CLEAR_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: 	
 						begin	
 							if(USE_CLEAR_SET == "TRUE")	
-								PORT[cnt_int] <= PORT[cnt_int] & ~bus_in[cnt_int];	
+								PORT[cnt_int] <= PORT[cnt_int] & ~bus_i[cnt_int];	
 						end	
 						PORT_SET_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: 	
 						begin	
 							if(USE_CLEAR_SET == "TRUE")	
-								PORT[cnt_int] <= PORT[cnt_int] | bus_in[cnt_int];	
+								PORT[cnt_int] <= PORT[cnt_int] | bus_i[cnt_int];	
 						end					
 					endcase
 				end
@@ -108,18 +108,18 @@ begin
 	begin
 		if (PINMASK[cnt_int])
 		begin
-			bus_out[cnt_int] = 1'b0;
-			if(rd & ~rst)
+			bus_o[cnt_int] = 1'b0;
+			if(rd_i & ~rst_i)
 			begin
-				case(addr[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT])
-					PORT_OUT_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: bus_out[cnt_int] = PORT[cnt_int];
-					DDR_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: bus_out[cnt_int] = DDR[cnt_int];
-					PIN_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: bus_out[cnt_int] = INVERSE_MASK[cnt_int] ? ~PIN[cnt_int] : PIN[cnt_int];
+				case(addr_i[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT])
+					PORT_OUT_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: bus_o[cnt_int] = PORT[cnt_int];
+					DDR_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: bus_o[cnt_int] = DDR[cnt_int];
+					PIN_ADDR[BUS_ADDR_DATA_LEN-1 : BUS_LEN_SHIFT]: bus_o[cnt_int] = INVERSE_MASK[cnt_int] ? ~PIN[cnt_int] : PIN[cnt_int];
 				endcase
 			end
 		end
 		else
-			bus_out[cnt_int] = 1'b0;
+			bus_o[cnt_int] = 1'b0;
 	end
 end
 
@@ -128,18 +128,18 @@ generate
 
 for (cnt = 0; cnt < PORT_WIDTH; cnt = cnt + 1)
 begin:OUTS_CONNECT
-	assign pio_out_io_connect[cnt] = (PINMASK[cnt] & OUT_ENABLED_MASK[cnt]) ? DDR[cnt] : 1'b0;
+	assign pio_out_io_connect_o[cnt] = (PINMASK[cnt] & OUT_ENABLED_MASK[cnt]) ? DDR[cnt] : 1'b0;
 end
 
 for (cnt = 0; cnt < PORT_WIDTH; cnt = cnt + 1)
 begin:OUTS
 	if (PINMASK[cnt] & OUT_ENABLED_MASK[cnt])
 	begin
-		assign io_out[cnt] = DDR[cnt] ? (INVERSE_MASK[cnt] ? ~PORT[cnt] : PORT[cnt]) : 1'bz;
+		assign io_o[cnt] = DDR[cnt] ? (INVERSE_MASK[cnt] ? ~PORT[cnt] : PORT[cnt]) : 1'bz;
 	end
 	else
 	begin
-		assign io_out[cnt] = 1'bz;
+		assign io_o[cnt] = 1'bz;
 	end
 end
 
@@ -150,7 +150,7 @@ begin:PULLUPS
 		if (PLATFORM == "XILINX")
 		begin
 			PULLUP PULLUP_inst (
-				.O(io_out[cnt])     // PullUp output (connect directly to top-level port)
+				.O(io_o[cnt])     // PullUp output (connect directly to top-level port)
 			);
 		end
 	end
@@ -163,7 +163,7 @@ begin:PULLDOWNS
 		if (PLATFORM == "XILINX")
 		begin
 			PULLDOWN PULLDOWN_inst (
-				.O(io_out[cnt])     // PullDown output (connect directly to top-level port)
+				.O(io_o[cnt])     // PullDown output (connect directly to top-level port)
 			);
 		end
 	end

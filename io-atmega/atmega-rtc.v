@@ -24,10 +24,10 @@ module rtc #(
 	parameter PERIOD_STATIC = 0,
 	parameter CNT_SIZE = 10
 	)(
-	input rst,
-	input clk,
-	output intr,
-	input int_rst
+	input rst_i,
+	input clk_i,
+	output intr_o,
+	input int_ack_i
 	);
 
 reg int_rst_int_p;
@@ -35,17 +35,17 @@ reg int_rst_int_n;
 
 reg [CNT_SIZE-1:0]CNT;
 
-always @ (posedge clk)
+always @ (posedge clk_i)
 begin
-	if(rst)
+	if(rst_i)
 		int_rst_int_n <= 'h0;
-	else if(int_rst & intr)
+	else if(int_ack_i & intr_o)
 		int_rst_int_n <= ~int_rst_int_n;
 end
 
-always @ (posedge clk)
+always @ (posedge clk_i)
 begin
-	if(rst)
+	if(rst_i)
 	begin
 		CNT <= 'h00;
 		int_rst_int_p <= 'h0;
@@ -57,7 +57,7 @@ begin
 			CNT <= 'h0;
 			if(PERIOD_STATIC)
 			begin
-				if(~intr)
+				if(~intr_o)
 				begin
 					int_rst_int_p <= ~int_rst_int_p;
 				end
@@ -70,6 +70,6 @@ begin
 	end
 end
  
-assign intr = int_rst_int_n ^ int_rst_int_p;
+assign intr_o = int_rst_int_n ^ int_rst_int_p;
 
 endmodule

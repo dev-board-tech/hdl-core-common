@@ -74,30 +74,30 @@ module atmega_tim_8bit # (
 	parameter TIFR_ADDR = 'h35,
 	parameter INCREMENT_VALUE = 1
 )(
-	input rst,
-	input clk,
-	input clk8,
-	input clk64,
-	input clk256,
-	input clk1024,
-	input [BUS_ADDR_DATA_LEN-1:0]addr,
-	input wr,
-	input rd,
-	input [7:0]bus_in,
-	output reg [7:0]bus_out,
+	input rst_i,
+	input clk_i,
+	input clk8_i,
+	input clk64_i,
+	input clk256_i,
+	input clk1024_i,
+	input [BUS_ADDR_DATA_LEN-1:0]addr_i,
+	input wr_i,
+	input rd_i,
+	input [7:0]bus_i,
+	output reg [7:0]bus_o,
 	
-	output tov_int,
-	input tov_int_rst,
-	output ocra_int,
-	input ocra_int_rst,
-	output ocrb_int,
-	input ocrb_int_rst,
+	output tov_int_o,
+	input tov_int_ack_i,
+	output ocra_int_o,
+	input ocra_int_ack_i,
+	output ocrb_int_o,
+	input ocrb_int_ack_i,
 	
-	input t,
-	output reg oca,
-	output reg ocb,
-	output oca_io_connect,
-	output ocb_io_connect
+	input t_i,
+	output reg oca_o,
+	output reg ocb_o,
+	output oca_io_connect_o,
+	output ocb_io_connect_o
 	);
 
 //reg [7:0]GTCCR;
@@ -133,7 +133,7 @@ wire clk_active = |TCCRB[`CS02:`CS00];
 // Accourding to timer sampling module.
 /*always @ *
 begin
-	if(rst)
+	if(rst_i)
 	begin
 		l1 = 1'b0;
 	end
@@ -144,9 +144,9 @@ begin
 	end
 end
 
-always @ (posedge clk)
+always @ (posedge clk_i)
 begin
-	if(rst)
+	if(rst_i)
 	begin
 		l2 = 1'b0;
 	end
@@ -162,11 +162,11 @@ end*/
 always @ *
 begin
 	case(TCCRB[`CS02:`CS00])
-	3'b001: clk_int = clk;
-	3'b010: clk_int = clk8;
-	3'b011: clk_int = clk64;
-	3'b100: clk_int = clk256;
-	3'b101: clk_int = clk1024;
+	3'b001: clk_int = clk_i;
+	3'b010: clk_int = clk8_i;
+	3'b011: clk_int = clk64_i;
+	3'b100: clk_int = clk256_i;
+	3'b101: clk_int = clk1024_i;
 	3'b110: clk_int = t0_fall;
 	3'b111: clk_int = t0_rising;
 	default: clk_int = 1'b0;
@@ -203,34 +203,34 @@ end
 // Read registers.
 always @ *
 begin
-	if(rst)
+	if(rst_i)
 	begin
-		bus_out = 8'h00;
+		bus_o = 8'h00;
 	end
 	else
 	begin
-		bus_out = 8'h00;
-		if(rd)
+		bus_o = 8'h00;
+		if(rd_i)
 		begin
-			case(addr)
+			case(addr_i)
 				//GTCCR_ADDR: bus_io_out = GTCCR;
-				TCCRA_ADDR: bus_out = TCCRA;
-				TCCRB_ADDR: bus_out = TCCRB;
-				TCNT_ADDR: bus_out = TCNT;
-				OCRA_ADDR: bus_out = OCRA;
-				OCRB_ADDR: bus_out = OCRB;
-				TIFR_ADDR: bus_out = TIFR;
+				TCCRA_ADDR: bus_o = TCCRA;
+				TCCRB_ADDR: bus_o = TCCRB;
+				TCNT_ADDR: bus_o = TCNT;
+				OCRA_ADDR: bus_o = OCRA;
+				OCRB_ADDR: bus_o = OCRB;
+				TIFR_ADDR: bus_o = TIFR;
 			endcase
 		end
-		if(rd & addr == TIMSK_ADDR)
-			bus_out = TIMSK;
+		if(rd_i & addr_i == TIMSK_ADDR)
+			bus_o = TIMSK;
 	end
 end
 
 /* Set "oc" pin on specified conditions*/
-always @ (posedge clk)
+always @ (posedge clk_i)
 begin
-	if(rst)
+	if(rst_i)
 	begin
 		//GTCCR <= 8'h00;
 		TCCRA <= 8'h00;
@@ -248,8 +248,8 @@ begin
 		ocra_n <= 1'b0;
 		ocrb_p <= 1'b0;
 		ocrb_n <= 1'b0;
-		oca <= 1'b0;
-		ocb <= 1'b0;
+		oca_o <= 1'b0;
+		ocb_o <= 1'b0;
 		up_count <= 1'b1;
 		clk_int_del <= 1'b0;
 	end
@@ -270,15 +270,15 @@ begin
 			TIFR[`OCF0B] <= 1'b1;
 			ocrb_n <= ocrb_p;
 		end
-		if(tov_int_rst)
+		if(tov_int_ack_i)
 		begin
 			TIFR[`TOV0] <= 1'b0;
 		end
-		if(ocra_int_rst)
+		if(ocra_int_ack_i)
 		begin
 			TIFR[`OCF0A] <= 1'b0;
 		end
-		if(ocrb_int_rst)
+		if(ocrb_int_ack_i)
 		begin
 			TIFR[`OCF0B] <= 1'b0;
 		end
@@ -297,28 +297,28 @@ begin
 			if(TCNT == OCRA_int)
 			begin
 				case({TCCRB[`WGM02], TCCRA[`WGM01:`WGM00]})
-					3'h2: oca <= ~oca;
+					3'h2: oca_o <= ~oca_o;
 					default:
 					begin
 						case(OCRA_int)
-							8'h00:	oca <= 1'b0;
-							(INCREMENT_VALUE == 2 ? 8'hFE : 8'hFF):	oca <= 1'b1;
+							8'h00:	oca_o <= 1'b0;
+							(INCREMENT_VALUE == 2 ? 8'hFE : 8'hFF):	oca_o <= 1'b1;
 							default:
 							begin
 								if(up_count)
 								begin
 									case(TCCRA[`COM0A1:`COM0A0])
-										2'h1: oca <= ~oca;
-										2'h2: oca <= 1'b0;
-										2'h3: oca <= 1'b1;
+										2'h1: oca_o <= ~oca_o;
+										2'h2: oca_o <= 1'b0;
+										2'h3: oca_o <= 1'b1;
 									endcase
 								end
 								else
 								begin
 									case(TCCRA[`COM0A1:`COM0A0])
-										2'h1: oca <= ~oca;
-										2'h2: oca <= 1'b1;
-										2'h3: oca <= 1'b0;
+										2'h1: oca_o <= ~oca_o;
+										2'h2: oca_o <= 1'b1;
+										2'h3: oca_o <= 1'b0;
 									endcase
 								end
 							end
@@ -345,28 +345,28 @@ begin
 				if(TCNT == OCRB_int)
 				begin
 					case({TCCRB[`WGM02], TCCRA[`WGM01:`WGM00]})
-						3'h2: ocb <= ~ocb;
+						3'h2: ocb_o <= ~ocb_o;
 						default:
 						begin
 							case(OCRB_int)
-								8'h00:	ocb <= 1'b0;
-								(INCREMENT_VALUE == 2 ? 8'hFE : 8'hFF):	ocb <= 1'b1;
+								8'h00:	ocb_o <= 1'b0;
+								(INCREMENT_VALUE == 2 ? 8'hFE : 8'hFF):	ocb_o <= 1'b1;
 								default:
 								begin
 									if(up_count)
 									begin
 										case(TCCRA[`COM0B1:`COM0B0])
-											2'h1: ocb <= ~ocb;
-											2'h2: ocb <= 1'b0;
-											2'h3: ocb <= 1'b1;
+											2'h1: ocb_o <= ~ocb_o;
+											2'h2: ocb_o <= 1'b0;
+											2'h3: ocb_o <= 1'b1;
 										endcase
 									end
 									else
 									begin
 										case(TCCRA[`COM0B1:`COM0B0])
-											2'h1: ocb <= ~ocb;
-											2'h2: ocb <= 1'b1;
-											2'h3: ocb <= 1'b0;
+											2'h1: ocb_o <= ~ocb_o;
+											2'h2: ocb_o <= 1'b1;
+											2'h3: ocb_o <= 1'b0;
 										endcase
 									end
 								end
@@ -422,28 +422,28 @@ begin
 			end
 		end
 		// Write registers
-		if(wr)
+		if(wr_i)
 		begin
-			case(addr)
+			case(addr_i)
 				//GTCCR_ADDR: GTCCR <= bus_io_in;
-				TCCRA_ADDR: TCCRA <= bus_in;
-				TCCRB_ADDR: TCCRB <= bus_in;
-				TCNT_ADDR: TCNT <= INCREMENT_VALUE == 2 ? {bus_in[7:1], 1'b0} : bus_in;
-				OCRA_ADDR: OCRA <= INCREMENT_VALUE == 2 ? {bus_in[7:1], 1'b0} : bus_in;
-				OCRB_ADDR: OCRB <= INCREMENT_VALUE == 2 ? {bus_in[7:1], 1'b0} : bus_in;
-				TIFR_ADDR: TIFR <= TIFR & ~bus_in;
+				TCCRA_ADDR: TCCRA <= bus_i;
+				TCCRB_ADDR: TCCRB <= bus_i;
+				TCNT_ADDR: TCNT <= INCREMENT_VALUE == 2 ? {bus_i[7:1], 1'b0} : bus_i;
+				OCRA_ADDR: OCRA <= INCREMENT_VALUE == 2 ? {bus_i[7:1], 1'b0} : bus_i;
+				OCRB_ADDR: OCRB <= INCREMENT_VALUE == 2 ? {bus_i[7:1], 1'b0} : bus_i;
+				TIFR_ADDR: TIFR <= TIFR & ~bus_i;
 			endcase
 		end
-		if(wr & addr == TIMSK_ADDR)
-			TIMSK <= bus_in;
+		if(wr_i & addr_i == TIMSK_ADDR)
+			TIMSK <= bus_i;
 	end
 end
 
-assign tov_int = TIFR[`TOV0];
-assign ocra_int = TIFR[`OCF0A];
-assign ocrb_int = TIFR[`OCF0B];
+assign tov_int_o = TIFR[`TOV0];
+assign ocra_int_o = TIFR[`OCF0A];
+assign ocrb_int_o = TIFR[`OCF0B];
 
-assign oca_io_connect = (TCCRA[`COM0A1:`COM0A0] == 2'b00) ? 1'b0 : (TCCRA[`COM0A1:`COM0A0] == 2'b01 ? ((TCCRA[`WGM01:`WGM00] == 2'd1 || TCCRA[`WGM01:`WGM00] == 2'd3) ? TCCRB[`WGM02] : 1'b1) : 1'b1);
-assign ocb_io_connect = USE_OCRB == "TRUE" ? ((TCCRA[`COM0B1:`COM0B0] == 2'b00) ? 1'b0 : (TCCRA[`COM0B1:`COM0B0] == 2'b01 ? ((TCCRA[`WGM01:`WGM00] == 2'd1 || TCCRA[`WGM01:`WGM00] == 2'd3) ? TCCRB[`WGM02] : 1'b1) : 1'b1)) : 1'b0;
+assign oca_io_connect_o = (TCCRA[`COM0A1:`COM0A0] == 2'b00) ? 1'b0 : (TCCRA[`COM0A1:`COM0A0] == 2'b01 ? ((TCCRA[`WGM01:`WGM00] == 2'd1 || TCCRA[`WGM01:`WGM00] == 2'd3) ? TCCRB[`WGM02] : 1'b1) : 1'b1);
+assign ocb_io_connect_o = USE_OCRB == "TRUE" ? ((TCCRA[`COM0B1:`COM0B0] == 2'b00) ? 1'b0 : (TCCRA[`COM0B1:`COM0B0] == 2'b01 ? ((TCCRA[`WGM01:`WGM00] == 2'd1 || TCCRA[`WGM01:`WGM00] == 2'd3) ? TCCRB[`WGM02] : 1'b1) : 1'b1)) : 1'b0;
 
 endmodule

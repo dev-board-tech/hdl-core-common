@@ -46,23 +46,23 @@ module atmega_spi_m # (
 	parameter USE_TX = "TRUE",
 	parameter USE_RX = "TRUE"
 )(
-	input rst,
-	input clk,
+	input rst_i,
+	input clk_i,
 
-	input [BUS_ADDR_DATA_LEN-1:0]addr,
-	input wr,
-	input rd,
-	input [7:0]bus_in,
-	output reg [7:0]bus_out,
+	input [BUS_ADDR_DATA_LEN-1:0]addr_i,
+	input wr_i,
+	input rd_i,
+	input [7:0]bus_i,
+	output reg [7:0]bus_o,
 
-	output int,
-	input int_rst,
-	output io_connect,
-	output io_conn_slave,
+	output int_o,
+	input int_ack_i,
+	output io_connect_o,
+	output io_conn_slave_o,
 
-	output scl,
-	input miso,
-	output mosi
+	output scl_o,
+	input miso_i,
+	output mosi_o
 	);
 
 
@@ -90,13 +90,13 @@ reg [(BAUDRATE_CNT_LEN ? BAUDRATE_CNT_LEN - 1 : 0) : 0]prescdemux;
 
 always @ (*)
 begin
-	bus_out = 8'b00;
-	if(rd)
+	bus_o = 8'b00;
+	if(rd_i)
 	begin
-		case(addr)
-		SPCR_ADDR: bus_out = SPCR;
-		SPSR_ADDR: bus_out = SPSR;
-		SPDR_ADDR: bus_out = SPDR;
+		case(addr_i)
+		SPCR_ADDR: bus_o = SPCR;
+		SPSR_ADDR: bus_o = SPSR;
+		SPDR_ADDR: bus_o = SPDR;
 		endcase
 	end
 end
@@ -122,9 +122,9 @@ begin
 	end
 end
 
-always @ (posedge clk)
+always @ (posedge clk_i)
 begin
-	if(rst)
+	if(rst_i)
 	begin
 		stc_n <= 1'b0;
 		SPCR <= 8'h00;
@@ -161,20 +161,20 @@ begin
 						begin
 							if(SPCR[`ATMEGA_SPI_SPCR_DORD_bp] == 1'b0)
 							begin
-								SPDR <= {rx_shift_reg[WORD_LEN - 2:0], miso};
+								SPDR <= {rx_shift_reg[WORD_LEN - 2:0], miso_i};
 							end
 							else
 							begin
-								SPDR <= {miso, rx_shift_reg[WORD_LEN - 1:1]};
+								SPDR <= {miso_i, rx_shift_reg[WORD_LEN - 1:1]};
 							end
 						end
 						if(SPCR[`ATMEGA_SPI_SPCR_DORD_bp] == 1'b0)
 						begin
-							rx_shift_reg <= {rx_shift_reg[WORD_LEN - 2:0], miso};
+							rx_shift_reg <= {rx_shift_reg[WORD_LEN - 2:0], miso_i};
 						end
 						else
 						begin
-							rx_shift_reg <= {miso, rx_shift_reg[WORD_LEN - 1:1]};
+							rx_shift_reg <= {miso_i, rx_shift_reg[WORD_LEN - 1:1]};
 						end
 					end
 				end
@@ -195,14 +195,14 @@ begin
 				end
 			end
 		end
-		if(int_rst)
+		if(int_ack_i)
 		begin
 			SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] <= 1'b0;
 		end
 		else
-		if(rd)
+		if(rd_i)
 		begin
-			case(addr)
+			case(addr_i)
 			SPSR_ADDR: 
 			begin
 				SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] <= 1'b0;
@@ -224,16 +224,16 @@ begin
 		end	
 		if(bit_cnt == WORD_LEN)
 		begin
-			if(wr)
+			if(wr_i)
 			begin
-				case(addr)
-				SPCR_ADDR: SPCR <= bus_in;
-				SPSR_ADDR: SPSR <= bus_in;
+				case(addr_i)
+				SPCR_ADDR: SPCR <= bus_i;
+				SPSR_ADDR: SPSR <= bus_i;
 				SPDR_ADDR: 
 				begin
 					if(SPCR[`ATMEGA_SPI_SPCR_EN_bp])
 					begin
-						tx_shift_reg <= bus_in;
+						tx_shift_reg <= bus_i;
 						bit_cnt <= 4'h0;
 						prescaller_cnt <= prescdemux;
 						sckint <= 1'b0;
@@ -252,10 +252,10 @@ begin
 	end
 end
 
-assign int = SPCR[`ATMEGA_SPI_SPCR_INT_EN_bp] ? SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] : 1'b0;
-assign scl = SPCR[`ATMEGA_SPI_SPCR_EN_bp] ? ((SPCR[`ATMEGA_SPI_SPCR_CPOL_bp]) ? (sck_active ? ~sckint : 1'b1) : (sck_active ? sckint : 1'b0)) : 1'b1;
-assign mosi = (SPCR[`ATMEGA_SPI_SPCR_EN_bp] & sck_active) ? (SPCR[`ATMEGA_SPI_SPCR_DORD_bp] ? tx_shift_reg[0] : tx_shift_reg[WORD_LEN - 1]) : 1'b1;
-assign io_connect = SPCR[`ATMEGA_SPI_SPCR_EN_bp];
-assign io_conn_slave = ~SPCR[`ATMEGA_SPI_SPCR_MSTR_bp];
+assign int_o = SPCR[`ATMEGA_SPI_SPCR_INT_EN_bp] ? SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] : 1'b0;
+assign scl_o = SPCR[`ATMEGA_SPI_SPCR_EN_bp] ? ((SPCR[`ATMEGA_SPI_SPCR_CPOL_bp]) ? (sck_active ? ~sckint : 1'b1) : (sck_active ? sckint : 1'b0)) : 1'b1;
+assign mosi_o = (SPCR[`ATMEGA_SPI_SPCR_EN_bp] & sck_active) ? (SPCR[`ATMEGA_SPI_SPCR_DORD_bp] ? tx_shift_reg[0] : tx_shift_reg[WORD_LEN - 1]) : 1'b1;
+assign io_connect_o = SPCR[`ATMEGA_SPI_SPCR_EN_bp];
+assign io_conn_slave_o = ~SPCR[`ATMEGA_SPI_SPCR_MSTR_bp];
 
 endmodule

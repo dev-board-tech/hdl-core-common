@@ -29,14 +29,14 @@ module atmega_rng_as_adc # (
 	parameter ADCSRB_ADDR = 'h7B,
 	parameter ADMUX_ADDR = 'h7C
 )(
-	input rst,
-	input clk,
+	input rst_i,
+	input clk_i,
 
-	input [BUS_ADDR_DATA_LEN-1:0]addr,
-	input wr,
-	input rd,
-	input [7:0]bus_in,
-	output reg [7:0]bus_out
+	input [BUS_ADDR_DATA_LEN-1:0]addr_i,
+	input wr_i,
+	input rd_i,
+	input [7:0]bus_i,
+	output reg [7:0]bus_o
     );
 
 reg [7:0]ADCL;
@@ -72,21 +72,21 @@ endgenerate
 
 always @ *
 begin
-	bus_out = 8'h0;
-	if(rd & ~rst)
+	bus_o = 8'h0;
+	if(rd_i & ~rst_i)
 	begin
-		case(addr)
-			ADCL_ADDR: bus_out = ADCL;
-			ADCH_ADDR: bus_out = ADCH;
-			//ADCSRA_ADDR: bus_out = ADCSRA;
-			//ADCSRB_ADDR: bus_out = ADCSRB;
+		case(addr_i)
+			ADCL_ADDR: bus_o = ADCL;
+			ADCH_ADDR: bus_o = ADCH;
+			//ADCSRA_ADDR: bus_o = ADCSRA;
+			//ADCSRB_ADDR: bus_o = ADCSRB;
 		endcase
 	end
 end
 
-always @ (posedge clk)
+always @ (posedge clk_i)
 begin
-	if(rst)
+	if(rst_i)
 	begin
 		ADCL <= 8'hFF;
 		ADCH <= 08'hFF;

@@ -67,24 +67,24 @@ module atmega_uart # (
 	parameter USE_TX = "TRUE",
 	parameter USE_RX = "TRUE"
 	)(
-	input rst,
-	input clk,
-	input [BUS_ADDR_DATA_LEN-1:0]addr,
-	input wr,
-	input rd,
-	input [7:0]bus_in,
-	output reg [7:0]bus_out,
+	input rst_i,
+	input clk_i,
+	input [BUS_ADDR_DATA_LEN-1:0]addr_i,
+	input wr_i,
+	input rd_i,
+	input [7:0]bus_i,
+	output reg [7:0]bus_o,
 	
-	output rxc_int,
-	input rxc_int_rst,
-	output txc_int,
-	input txc_int_rst,
-	output udre_int,
-	input udre_int_rst,
+	output rxc_int_o,
+	input rxc_int_ack_i,
+	output txc_int_o,
+	input txc_int_ack_i,
+	output udre_int_o,
+	input udre_int_ack_i,
 
-	input rx,
-	output reg tx,
-	output tx_connect
+	input rx_i,
+	output reg tx_o,
+	output tx_connect_o
 	);
 
 
@@ -125,11 +125,11 @@ reg send_p;
 reg send_n;
 reg udre_old;
 
-always @ (posedge clk)
+always @ (posedge clk_i)
 begin
 	if(USE_TX == "TRUE")
 	begin
-		if(rst)
+		if(rst_i)
 		begin
 			UDR_tx <= 8'h00;
 			UCSRA[3:0] <= 4'h0;
@@ -141,7 +141,7 @@ begin
 			UBRRH <= 8'h00;
 			tx_prescaller_cnt <= 16'h0000;
 			tx_state <= 2'h0;
-			tx <= 1'b1;
+			tx_o <= 1'b1;
 			send_p <= 1'b0;
 			send_n <= 1'b0;
 			udre_p <= 1'b0;
@@ -159,7 +159,7 @@ begin
 			begin
 				tx_prescaller_cnt <= 16'h0000;
 				tx_state <= 2'h0;
-				tx <= 1'b1;
+				tx_o <= 1'b1;
 				send_p <= 1'b0;
 				send_n <= 1'b0;
 				udre_p <= 1'b0;
@@ -179,7 +179,7 @@ begin
 					begin
 						if(tx_bit_cnt)
 						begin
-							tx <= tx_shift_reg[0];
+							tx_o <= tx_shift_reg[0];
 						end
 						else
 						begin
@@ -191,7 +191,7 @@ begin
 							begin
 								tx_state <= 2'h2;
 							end
-							tx <= 1'b1;
+							tx_o <= 1'b1;
 						end
 						tx_shift_reg <= {1'b0, tx_shift_reg[8:1]};
 						tx_bit_cnt <= tx_bit_cnt - 1;
@@ -217,7 +217,7 @@ begin
 					tx_prescaller_cnt <= tx_prescaller_value_int;
 					tx_shift_reg <= UDR_tx;
 					tx_shift_reg[8] <= UCSRB[`TXB8];
-					tx <= 1'b0;
+					tx_o <= 1'b0;
 					tx_bit_cnt <= bit_per_word_int;
 					tx_state <= 2'h1;
 				end
@@ -233,47 +233,47 @@ begin
 			txc_p <= 1'b0;
 			txc_n <= 1'b0;
 		end
-		if(udre_int_rst)
+		if(udre_int_ack_i)
 		begin
 			udre_int_n <= udre_int_p;
 		end
-		if(txc_int_rst)
+		if(txc_int_ack_i)
 		begin
 			txc_n <= txc_p;
 		end
 		if(~udre_old & UCSRA[`UDRE])
 			udre_int_p <= ~udre_int_n;
 	end
-	if(wr)
+	if(wr_i)
 	begin
-		case(addr)
+		case(addr_i)
 			UDR_ADDR:
 			begin
-				UDR_tx <= bus_in;
+				UDR_tx <= bus_i;
 				udre_p <= ~udre_n;
 			end
 			UCSRA_ADDR:
 			begin
 				txc_n <= txc_p;
-				UCSRA[3:0] <= bus_in[3:0];
+				UCSRA[3:0] <= bus_i[3:0];
 			end
 			UCSRB_ADDR: 
 			begin
-				UCSRB[7:2] <= bus_in[7:2];
-				UCSRB[0] <= bus_in[0];
+				UCSRB[7:2] <= bus_i[7:2];
+				UCSRB[0] <= bus_i[0];
 			end
-			UCSRC_ADDR: UCSRC <= bus_in;
-			UCSRD_ADDR: UCSRD <= bus_in;
-			UBRRL_ADDR: UBRRL <= bus_in;
-			UBRRH_ADDR: UBRRH <= bus_in;
+			UCSRC_ADDR: UCSRC <= bus_i;
+			UCSRD_ADDR: UCSRD <= bus_i;
+			UBRRL_ADDR: UBRRL <= bus_i;
+			UBRRH_ADDR: UBRRH <= bus_i;
 		endcase
 	end
 end
 
 always @ * UCSRA[`UDRE] = udre_p == udre_n & send_p == send_n;
 always @ * UCSRA[`TXC] = txc_p ^ txc_n;
-assign udre_int = UCSRB[`UDREIE] ? udre_int_p ^ udre_int_n : 1'b0;
-assign txc_int = UCSRB[`TXCIE] ? UCSRA[`TXC] : 1'b0;
+assign udre_int_o = UCSRB[`UDREIE] ? udre_int_p ^ udre_int_n : 1'b0;
+assign txc_int_o = UCSRB[`TXCIE] ? UCSRA[`TXC] : 1'b0;
 assign tx_connect = UCSRB[`TXEN];
 
 reg [13:0]rx_prescaller_cnt;
@@ -287,11 +287,11 @@ wire rx_pin_state = (rx_pin_state_0_cnt <= rx_pin_state_1_cnt) & ((rx_pin_state_
 reg rxc_p;
 reg rxc_n;
 
-always @ (posedge clk)
+always @ (posedge clk_i)
 begin
 	if(USE_RX == "TRUE")
 	begin
-		if(rst)
+		if(rst_i)
 		begin
 			rx_prescaller_cnt <= 16'h0000;
 			rx_state <= 2'h0;
@@ -338,7 +338,7 @@ begin
 					begin
 						rx_sample_cnt <= 4'h0;
 					end
-					if(rx)
+					if(rx_i)
 					begin
 						if(rx_pin_state_1_cnt != 3'b100)
 						begin
@@ -363,7 +363,7 @@ begin
 					case(rx_state)
 						2'h0:
 						begin
-							if(~rx)
+							if(~rx_i)
 							begin // Check for low level on RX pin.
 								rx_pin_state_0_cnt <= 3'h0;
 								rx_pin_state_1_cnt <= 3'h0;
@@ -458,9 +458,9 @@ begin
 			rxc_p <= 1'b0;
 			rxc_n <= 1'b0;
 		end
-		if(rd)
+		if(rd_i)
 		begin
-			case(addr)
+			case(addr_i)
 				UDR_ADDR: 
 				begin
 					if(UDR_ADDR >= 'h40)
@@ -468,7 +468,7 @@ begin
 				end
 			endcase
 		end
-		if(rxc_int_rst)
+		if(rxc_int_ack_i)
 		begin
 			rxc_n <= rxc_p;
 		end
@@ -476,28 +476,28 @@ begin
 end
 
 always @ * UCSRA[`RXC] = rxc_p ^ rxc_n;
-assign rxc_int = UCSRB[`RXCIE] ? UCSRA[`RXC] : 1'b0;
+assign rxc_int_o = UCSRB[`RXCIE] ? UCSRA[`RXC] : 1'b0;
 
 
 always @ *
 begin
-	if(rst)
+	if(rst_i)
 	begin
-		bus_out = 8'b0;
+		bus_o = 8'b0;
 	end
 	else
 	begin
-		bus_out = 8'b0;
-		if(rd)
+		bus_o = 8'b0;
+		if(rd_i)
 		begin
-			case(addr)
-				UDR_ADDR: bus_out = UDR_rx;
-				UCSRA_ADDR: bus_out = UCSRA;
-				UCSRB_ADDR: bus_out = UCSRB;
-				UCSRC_ADDR: bus_out = UCSRC;
-				UCSRD_ADDR: bus_out = UCSRD;
-				UBRRL_ADDR: bus_out = UBRRL;
-				UBRRH_ADDR: bus_out = UBRRH;
+			case(addr_i)
+				UDR_ADDR: bus_o = UDR_rx;
+				UCSRA_ADDR: bus_o = UCSRA;
+				UCSRB_ADDR: bus_o = UCSRB;
+				UCSRC_ADDR: bus_o = UCSRC;
+				UCSRD_ADDR: bus_o = UCSRD;
+				UBRRL_ADDR: bus_o = UBRRL;
+				UBRRH_ADDR: bus_o = UBRRH;
 			endcase
 		end
 	end
