@@ -62,6 +62,7 @@
 
 module atmega_tim_8bit # (
 	parameter PLATFORM = "XILINX",
+	parameter USE_OCRA = "TRUE",
 	parameter USE_OCRB = "TRUE",
 	parameter BUS_ADDR_DATA_LEN = 8,
 	parameter GTCCR_ADDR = 'h43,
@@ -291,52 +292,55 @@ begin
 			else
 			if(~up_count)
 				TCNT <= TCNT - INCREMENT_VALUE;
-			// OCRA
-			if(updt_ocr_on_top ? (TCNT == 8'hff):(TCNT == OCRA_int))
-				OCRA_int <= INCREMENT_VALUE == 2 ? {OCRA[7:1], 1'b0} : OCRA;
-			if(TCNT == OCRA_int)
+			if(USE_OCRA == "TRUE")
 			begin
-				case({TCCRB[`WGM02], TCCRA[`WGM01:`WGM00]})
-					3'h2: oca_o <= ~oca_o;
-					default:
-					begin
-						case(OCRA_int)
-							8'h00:	oca_o <= 1'b0;
-							(INCREMENT_VALUE == 2 ? 8'hFE : 8'hFF):	oca_o <= 1'b1;
-							default:
-							begin
-								if(up_count)
-								begin
-									case(TCCRA[`COM0A1:`COM0A0])
-										2'h1: oca_o <= ~oca_o;
-										2'h2: oca_o <= 1'b0;
-										2'h3: oca_o <= 1'b1;
-									endcase
-								end
-								else
-								begin
-									case(TCCRA[`COM0A1:`COM0A0])
-										2'h1: oca_o <= ~oca_o;
-										2'h2: oca_o <= 1'b1;
-										2'h3: oca_o <= 1'b0;
-									endcase
-								end
-							end
-						endcase
-					end
-				endcase
-				if(TIMSK[`OCIE0A] == 1'b1)
+				// OCRA
+				if(updt_ocr_on_top ? (TCNT == 8'hff):(TCNT == OCRA_int))
+					OCRA_int <= INCREMENT_VALUE == 2 ? {OCRA[7:1], 1'b0} : OCRA;
+				if(TCNT == OCRA_int)
 				begin
-					if(ocra_p == ocra_n && clk_active == 1'b1)
-						ocra_p <= ~ocra_p;
-					else
+					case({TCCRB[`WGM02], TCCRA[`WGM01:`WGM00]})
+						3'h2: oca_o <= ~oca_o;
+						default:
+						begin
+							case(OCRA_int)
+								8'h00:	oca_o <= 1'b0;
+								(INCREMENT_VALUE == 2 ? 8'hFE : 8'hFF):	oca_o <= 1'b1;
+								default:
+								begin
+									if(up_count)
+									begin
+										case(TCCRA[`COM0A1:`COM0A0])
+											2'h1: oca_o <= ~oca_o;
+											2'h2: oca_o <= 1'b0;
+											2'h3: oca_o <= 1'b1;
+										endcase
+									end
+									else
+									begin
+										case(TCCRA[`COM0A1:`COM0A0])
+											2'h1: oca_o <= ~oca_o;
+											2'h2: oca_o <= 1'b1;
+											2'h3: oca_o <= 1'b0;
+										endcase
+									end
+								end
+							endcase
+						end
+					endcase
+					if(TIMSK[`OCIE0A] == 1'b1)
 					begin
-						ocra_p <= 1'b0;
-						ocra_n <= 1'b0;
+						if(ocra_p == ocra_n && clk_active == 1'b1)
+							ocra_p <= ~ocra_p;
+						else
+						begin
+							ocra_p <= 1'b0;
+							ocra_n <= 1'b0;
+						end
 					end
 				end
+				// !OCRA
 			end
-			// !OCRA
 			if(USE_OCRB == "TRUE")
 			begin
 				// OCRB
@@ -443,7 +447,7 @@ assign tov_int_o = TIFR[`TOV0];
 assign ocra_int_o = TIFR[`OCF0A];
 assign ocrb_int_o = TIFR[`OCF0B];
 
-assign oca_io_connect_o = (TCCRA[`COM0A1:`COM0A0] == 2'b00) ? 1'b0 : (TCCRA[`COM0A1:`COM0A0] == 2'b01 ? ((TCCRA[`WGM01:`WGM00] == 2'd1 || TCCRA[`WGM01:`WGM00] == 2'd3) ? TCCRB[`WGM02] : 1'b1) : 1'b1);
+assign oca_io_connect_o = USE_OCRB == "TRUE" ? ((TCCRA[`COM0A1:`COM0A0] == 2'b00) ? 1'b0 : (TCCRA[`COM0A1:`COM0A0] == 2'b01 ? ((TCCRA[`WGM01:`WGM00] == 2'd1 || TCCRA[`WGM01:`WGM00] == 2'd3) ? TCCRB[`WGM02] : 1'b1) : 1'b1)) : 1'b0;
 assign ocb_io_connect_o = USE_OCRB == "TRUE" ? ((TCCRA[`COM0B1:`COM0B0] == 2'b00) ? 1'b0 : (TCCRA[`COM0B1:`COM0B0] == 2'b01 ? ((TCCRA[`WGM01:`WGM00] == 2'd1 || TCCRA[`WGM01:`WGM00] == 2'd3) ? TCCRB[`WGM02] : 1'b1) : 1'b1)) : 1'b0;
 
 endmodule

@@ -65,7 +65,8 @@ module atmega_uart # (
 	parameter UBRRL_ADDR = 'hcc,
 	parameter UBRRH_ADDR = 'hcd,
 	parameter USE_TX = "TRUE",
-	parameter USE_RX = "TRUE"
+	parameter USE_RX = "TRUE",
+	parameter USE_RX_FILTER = "FALSE"
 	)(
 	input rst_i,
 	input clk_i,
@@ -111,7 +112,7 @@ begin
 	3'd0: bit_per_word_int = 4'd5;
 	3'd1: bit_per_word_int = 4'd6;
 	3'd2: bit_per_word_int = 4'd7;
-	3'd3: bit_per_word_int = 4'd8;
+	//3'd3: bit_per_word_int = 4'd8;
 	3'd7: bit_per_word_int = 4'd9;
 	default: bit_per_word_int = 4'd8;
 	endcase
@@ -174,7 +175,7 @@ begin
 				end
 				else
 				begin
-					tx_prescaller_cnt <= tx_prescaller_value_int;
+					tx_prescaller_cnt <= tx_prescaller_value_int - 1;
 					if(tx_state == 2'h1)
 					begin
 						if(tx_bit_cnt)
@@ -208,13 +209,13 @@ begin
 				end
 				if(udre_p ^ udre_n & send_p == send_n)
 				begin
-					send_p <= ~send_n;
 					udre_n <= udre_p;
+					send_p <= ~send_n;
 				end
 				if((send_p ^ send_n) & tx_state == 2'h0)
 				begin
 					send_n <= send_p;
-					tx_prescaller_cnt <= tx_prescaller_value_int;
+					tx_prescaller_cnt <= tx_prescaller_value_int - 1;
 					tx_shift_reg <= UDR_tx;
 					tx_shift_reg[8] <= UCSRB[`TXB8];
 					tx_o <= 1'b0;
@@ -281,9 +282,9 @@ reg [1:0]rx_state;
 reg [8:0]rx_shift_reg;
 reg [2:0]rx_pin_state_0_cnt;
 reg [2:0]rx_pin_state_1_cnt;
-reg [3:0]rx_sample_cnt;
+reg [2:0]rx_sample_cnt;
 reg [3:0]rx_bit_cnt;
-wire rx_pin_state = (rx_pin_state_0_cnt <= rx_pin_state_1_cnt) & ((rx_pin_state_0_cnt == 3'b100) | (rx_pin_state_1_cnt == 3'b100));
+wire rx_pin_state = USE_RX_FILTER == "TRUE" ? ((rx_pin_state_0_cnt <= rx_pin_state_1_cnt) & ((rx_pin_state_0_cnt == 3'b100) | (rx_pin_state_1_cnt == 3'b100))) : rx_i;
 reg rxc_p;
 reg rxc_n;
 
@@ -295,8 +296,11 @@ begin
 		begin
 			rx_prescaller_cnt <= 16'h0000;
 			rx_state <= 2'h0;
-			rx_pin_state_0_cnt <= 2'h0;
-			rx_pin_state_1_cnt <= 2'h0;
+			if(USE_RX_FILTER == "TRUE")
+			begin
+				rx_pin_state_0_cnt <= 3'h0;
+				rx_pin_state_1_cnt <= 3'h0;
+			end
 			rx_bit_cnt <= 4'h0;
 			rx_sample_cnt <= 4'h0;
 			rx_shift_reg <= 'h0;
@@ -312,8 +316,11 @@ begin
 			begin
 				rx_prescaller_cnt <= 16'h0000;
 				rx_state <= 2'h0;
-				rx_pin_state_0_cnt <= 2'h0;
-				rx_pin_state_1_cnt <= 2'h0;
+				if(USE_RX_FILTER == "TRUE")
+				begin
+					rx_pin_state_0_cnt <= 3'h0;
+					rx_pin_state_1_cnt <= 3'h0;
+				end
 				rx_bit_cnt <= 4'h0;
 				rx_sample_cnt <= 4'h0;
 				rx_shift_reg <= 'h0;
@@ -323,54 +330,37 @@ begin
 			end
 			else
 			begin
-				if(rx_prescaller_cnt)
-				begin
-					rx_prescaller_cnt <= rx_prescaller_cnt - 1;
-				end
-				else
+				rx_prescaller_cnt <= rx_prescaller_cnt - 1;
+				if(rx_prescaller_cnt == 0)
 				begin
 					rx_prescaller_cnt <= rx_prescaller_value_int - 1;
-					if(rx_sample_cnt < 4'd8)
+					rx_sample_cnt <= rx_sample_cnt + 1;
+					if(USE_RX_FILTER == "TRUE")
 					begin
-						rx_sample_cnt <= rx_sample_cnt + 1;
-					end
-					else
-					begin
-						rx_sample_cnt <= 4'h0;
-					end
-					if(rx_i)
-					begin
-						if(rx_pin_state_1_cnt != 3'b100)
+						if(rx_i)
 						begin
-							rx_pin_state_1_cnt <= rx_pin_state_1_cnt + 1;
+							if(rx_pin_state_1_cnt != 3'b100)
+							begin
+								rx_pin_state_1_cnt <= rx_pin_state_1_cnt + 1;
+							end
+							if(rx_pin_state_0_cnt)
+							begin
+								rx_pin_state_0_cnt <= rx_pin_state_0_cnt - 1;
+							end
 						end
-						if(rx_pin_state_0_cnt)
+						else
 						begin
-							rx_pin_state_0_cnt <= rx_pin_state_0_cnt - 1;
-						end
-					end
-					else
-					begin
-						if(rx_pin_state_0_cnt != 3'b100)
-						begin
-							rx_pin_state_0_cnt <= rx_pin_state_0_cnt + 1;
-						end
-						if(rx_pin_state_1_cnt)
-						begin
-							rx_pin_state_1_cnt <= rx_pin_state_1_cnt - 1;
+							if(rx_pin_state_0_cnt != 3'b100)
+							begin
+								rx_pin_state_0_cnt <= rx_pin_state_0_cnt + 1;
+							end
+							if(rx_pin_state_1_cnt)
+							begin
+								rx_pin_state_1_cnt <= rx_pin_state_1_cnt - 1;
+							end
 						end
 					end
 					case(rx_state)
-						2'h0:
-						begin
-							if(~rx_i)
-							begin // Check for low level on RX pin.
-								rx_pin_state_0_cnt <= 3'h0;
-								rx_pin_state_1_cnt <= 3'h0;
-								rx_sample_cnt <= 4'h2;
-								rx_state <= 2'h1;
-							end
-						end
 						2'h1:
 						begin
 							if(rx_sample_cnt == 4'h5)
@@ -383,8 +373,11 @@ begin
 								end
 								else
 								begin // False start, go back to IDLE
-									rx_pin_state_0_cnt <= 3'h0;
-									rx_pin_state_1_cnt <= 3'h0;
+									if(USE_RX_FILTER == "TRUE")
+									begin
+										rx_pin_state_0_cnt <= 3'h0;
+										rx_pin_state_1_cnt <= 3'h0;
+									end
 									rx_state <= 2'h0;
 								end
 							end
@@ -393,8 +386,11 @@ begin
 						begin
 							if(rx_sample_cnt == 4'h0)
 							begin
-								rx_pin_state_0_cnt <= 3'h0;
-								rx_pin_state_1_cnt <= 3'h0;
+								if(USE_RX_FILTER == "TRUE")
+								begin
+									rx_pin_state_0_cnt <= 3'h0;
+									rx_pin_state_1_cnt <= 3'h0;
+								end
 							end
 							if(rx_sample_cnt == 4'h5)
 								begin
@@ -418,9 +414,11 @@ begin
 										UDR_rx <= rx_shift_reg;
 										UCSRB[`RXB8] <= rx_shift_reg[8];
 										rxc_p <= ~rxc_n;
-										rx_pin_state_0_cnt <= 3'h0;
-										rx_pin_state_1_cnt <= 3'h0;
-										rx_prescaller_cnt <= 0;
+										if(USE_RX_FILTER == "TRUE")
+										begin
+											rx_pin_state_0_cnt <= 3'h0;
+											rx_pin_state_1_cnt <= 3'h0;
+										end
 										rx_sample_cnt <= 4'd0;
 										rx_state <= 2'h0;
 									end
@@ -442,9 +440,11 @@ begin
 								UDR_rx <= rx_shift_reg;
 								UCSRB[`RXB8] <= rx_shift_reg[8];
 								rxc_p <= ~rxc_n;
-								rx_pin_state_0_cnt <= 3'h0;
-								rx_pin_state_1_cnt <= 3'h0;
-								rx_prescaller_cnt <= 0;
+								if(USE_RX_FILTER == "TRUE")
+								begin
+									rx_pin_state_0_cnt <= 3'h0;
+									rx_pin_state_1_cnt <= 3'h0;
+								end
 								rx_sample_cnt <= 4'd0;
 								rx_state <= 2'h0;
 							end
@@ -452,19 +452,34 @@ begin
 					endcase
 				end
 			end
+			case(rx_state)
+				2'h0:
+				begin
+					if(~rx_i)
+					begin // Check for low level on RX pin.
+						if(USE_RX_FILTER == "TRUE")
+						begin
+							rx_pin_state_0_cnt <= 3'h0;
+							rx_pin_state_1_cnt <= 3'h0;
+						end
+						rx_prescaller_cnt <= rx_prescaller_value_int - 1;
+						rx_sample_cnt <= 4'h0;
+						rx_state <= 2'h1;
+					end
+				end
+			endcase
 		end
-		if(~UCSRB[`RXCIE])
+		/*if(~UCSRB[`RXCIE])
 		begin
 			rxc_p <= 1'b0;
 			rxc_n <= 1'b0;
-		end
+		end*/
 		if(rd_i)
 		begin
 			case(addr_i)
 				UDR_ADDR: 
 				begin
-					if(UDR_ADDR >= 'h40)
-						rxc_n <= rxc_p;
+					rxc_n <= rxc_p;
 				end
 			endcase
 		end
