@@ -26,7 +26,7 @@ module rtc #(
 	)(
 	input rst_i,
 	input clk_i,
-	output intr_o,
+	output int_o,
 	input int_ack_i
 	);
 
@@ -39,7 +39,7 @@ always @ (posedge clk_i)
 begin
 	if(rst_i)
 		int_rst_int_n <= 'h0;
-	else if(int_ack_i & intr_o)
+	else if(int_ack_i & int_o)
 		int_rst_int_n <= ~int_rst_int_n;
 end
 
@@ -57,7 +57,7 @@ begin
 			CNT <= 'h0;
 			if(PERIOD_STATIC)
 			begin
-				if(~intr_o)
+				if(~int_o)
 				begin
 					int_rst_int_p <= ~int_rst_int_p;
 				end
@@ -70,6 +70,6 @@ begin
 	end
 end
  
-assign intr_o = int_rst_int_n ^ int_rst_int_p;
+assign int_o = int_rst_int_n ^ int_rst_int_p;
 
 endmodule

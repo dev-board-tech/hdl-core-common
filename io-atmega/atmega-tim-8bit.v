@@ -447,7 +447,7 @@ assign tov_int_o = TIFR[`TOV0];
 assign ocra_int_o = TIFR[`OCF0A];
 assign ocrb_int_o = TIFR[`OCF0B];
 
-assign oca_io_connect_o = USE_OCRB == "TRUE" ? ((TCCRA[`COM0A1:`COM0A0] == 2'b00) ? 1'b0 : (TCCRA[`COM0A1:`COM0A0] == 2'b01 ? ((TCCRA[`WGM01:`WGM00] == 2'd1 || TCCRA[`WGM01:`WGM00] == 2'd3) ? TCCRB[`WGM02] : 1'b1) : 1'b1)) : 1'b0;
+assign oca_io_connect_o = USE_OCRA == "TRUE" ? ((TCCRA[`COM0A1:`COM0A0] == 2'b00) ? 1'b0 : (TCCRA[`COM0A1:`COM0A0] == 2'b01 ? ((TCCRA[`WGM01:`WGM00] == 2'd1 || TCCRA[`WGM01:`WGM00] == 2'd3) ? TCCRB[`WGM02] : 1'b1) : 1'b1)) : 1'b0;
 assign ocb_io_connect_o = USE_OCRB == "TRUE" ? ((TCCRA[`COM0B1:`COM0B0] == 2'b00) ? 1'b0 : (TCCRA[`COM0B1:`COM0B0] == 2'b01 ? ((TCCRA[`WGM01:`WGM00] == 2'd1 || TCCRA[`WGM01:`WGM00] == 2'd3) ? TCCRB[`WGM02] : 1'b1) : 1'b1)) : 1'b0;
 
 endmodule

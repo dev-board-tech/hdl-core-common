@@ -145,7 +145,7 @@ begin
 		begin
 			if(prescaller_cnt & BAUDRATE_CNT_LEN != 0)
 			begin
-				prescaller_cnt <= prescaller_cnt - 1;
+				prescaller_cnt <= prescaller_cnt - 8'h1;
 			end
 			else
 			begin

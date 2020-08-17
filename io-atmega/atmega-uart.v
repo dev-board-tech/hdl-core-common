@@ -55,7 +55,6 @@
 
 module atmega_uart # (
 	parameter PLATFORM = "XILINX",
-	parameter BUS_ADDR_IO_LEN = 16,
 	parameter BUS_ADDR_DATA_LEN = 8,
 	parameter UDR_ADDR = 'hc1,
 	parameter UCSRA_ADDR = 'hc8,
@@ -275,7 +274,7 @@ always @ * UCSRA[`UDRE] = udre_p == udre_n & send_p == send_n;
 always @ * UCSRA[`TXC] = txc_p ^ txc_n;
 assign udre_int_o = UCSRB[`UDREIE] ? udre_int_p ^ udre_int_n : 1'b0;
 assign txc_int_o = UCSRB[`TXCIE] ? UCSRA[`TXC] : 1'b0;
-assign tx_connect = UCSRB[`TXEN];
+assign tx_connect_o = UCSRB[`TXEN];
 
 reg [13:0]rx_prescaller_cnt;
 reg [1:0]rx_state;

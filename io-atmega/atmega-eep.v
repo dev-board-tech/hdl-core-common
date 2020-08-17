@@ -40,7 +40,7 @@ module atmega_eep # (
 	output reg [7:0]bus_o,
 
 	output int_o,
-	input int_rst_i,
+	input int_ack_i,
 	
 	input [16:0]ext_eep_addr_i,
 	input [7:0]ext_eep_data_i,
@@ -160,7 +160,7 @@ begin
 			EEDR_READ <= ~read_tmp;
 			EECR[0] <= 1'b0;
 		end
-		if(int_rst_i)
+		if(int_ack_i)
 		begin
 			int_n <= int_p;
 		end
@@ -180,7 +180,7 @@ begin
 	read_tmp <= eep[ext_eep_data_en_i ? ext_eep_addr_i : {EEARH, EEARL}];
 end
 
-assign ext_eep_data_out = (ext_eep_data_rd_i & ext_eep_data_en_i) ? ~read_tmp : 8'h00;
+assign ext_eep_data_o = (ext_eep_data_rd_i & ext_eep_data_en_i) ? ~read_tmp : 8'h00;
 assign int_o = EECR[3] ? (int_p ^ int_n) : 1'b0;
 
 endmodule
