@@ -26,22 +26,22 @@ module spi_slave # (
 	parameter USE_TX = "TRUE",
 	parameter USE_RX = "TRUE"
 	)(
-	input rst,
-	input clk,
-	input en,
-	input [3:0]bit_per_word,
-	input lsb_first,
-	input ss,
-	input scl,
-	output miso,
-	input mosi,
-	input [MAX_BITS_PER_WORD - 1:0]bus_in,
-	output reg rdy,
-	input rdy_ack,
-	output reg [MAX_BITS_PER_WORD - 1:0]bus_out,
-	output first_byte,
-	output last_byte,
-	input last_byte_ack
+	input rst_i,
+	input clk_i,
+	input en_i,
+	input [3:0]bit_per_word_i,
+	input lsb_first_i,
+	input ss_i,
+	input scl_i,
+	output miso_o,
+	input mosi_i,
+	input [MAX_BITS_PER_WORD - 1:0]bus_i,
+	output reg rdy_o,
+	input rdy_ack_i,
+	output reg [MAX_BITS_PER_WORD - 1:0]bus_o,
+	output first_byte_o,
+	output last_byte_o,
+	input last_byte_ack_i
 	);
 
 reg [MAX_BITS_PER_WORD - 1:0]rx_shift_reg;
@@ -61,71 +61,71 @@ reg cs_start_p;
 
 reg [3:0]bit_per_word_int;
 
-always @ (posedge rst or posedge clk)
+always @ (posedge rst_i or posedge clk_i)
 begin
-	if(rst | ~en)
+	if(rst_i | ~en_i)
 	begin
 		rdy_n <= 'h0;
 	end
 	else
-	if(rdy_ack)
+	if(rdy_ack_i)
 	begin
 		rdy_n <= rdy_p;
 	end
 end
 
-always @ (posedge rst or posedge clk)
+always @ (posedge rst_i or posedge clk_i)
 begin
-	if(rst | ~en)
+	if(rst_i | ~en_i)
 	begin
 		last_byte_n <= 1'b0;
 	end
 	else
-	if(last_byte_ack)
+	if(last_byte_ack_i)
 	begin
 		last_byte_n <= last_byte_p;
 	end
 end
 
-always @ (posedge rst or posedge clk)
+always @ (posedge rst_i or posedge clk_i)
 begin
-	if(rst | ~en)
+	if(rst_i | ~en_i)
 	begin
 		last_byte_p <= 1'b0;
 		cs_p <= 1'b1;
 	end
 	else
 	begin
-		if(last_byte_p == last_byte_n && {cs_p, ss} == 2'b01)
+		if(last_byte_p == last_byte_n && {cs_p, ss_i} == 2'b01)
 		begin
 			last_byte_p <= ~last_byte_p;
 		end
-		cs_p <= ss;
+		cs_p <= ss_i;
 	end
 end
 
 //rx
-always @ (posedge rst or posedge scl or posedge ss or negedge en)
+always @ (posedge rst_i or posedge scl_i or posedge ss_i or negedge en_i)
 begin
-	if(rst | ~en)
+	if(rst_i | ~en_i)
 	begin
 		rx_shift_reg <= 'hFFF;
 		bit_cnt <= 4'h0;
 		first_byte_1 <= 1'b0;
 		first_byte_2 <= 1'b0;
 		rdy_p <= 1'b0;
-		bit_per_word_int <= bit_per_word - 4'd1;
-		bus_out <= 8'h00;
+		bit_per_word_int <= bit_per_word_i - 4'd1;
+		bus_o <= 8'h00;
 	end
 	else
 	begin
-		if(ss)
+		if(ss_i)
 		begin
 			rx_shift_reg <= 'hFFF;
 			bit_cnt <= 4'h0;
 			first_byte_1 <= 1'b0;
 			first_byte_2 <= 1'b0;
-			bit_per_word_int <= bit_per_word - 4'd1;
+			bit_per_word_int <= bit_per_word_i - 4'd1;
 		end
 		else
 		begin
@@ -140,50 +140,50 @@ begin
 				end
 				if(USE_RX == "TRUE")
 				begin
-					if(lsb_first == 1'b0)
+					if(lsb_first_i == 1'b0)
 					begin
-						bus_out <= {rx_shift_reg[MAX_BITS_PER_WORD - 2:0], mosi};
+						bus_o <= {rx_shift_reg[MAX_BITS_PER_WORD - 2:0], mosi_i};
 					end
 					else
 					begin
-						bus_out <= rx_shift_reg[MAX_BITS_PER_WORD - 1:0];
-						bus_out[bit_cnt] <= mosi;
+						bus_o <= rx_shift_reg[MAX_BITS_PER_WORD - 1:0];
+						bus_o[bit_cnt] <= mosi_i;
 					end
 				end
 				bit_cnt <= 4'h0;
 			end
 			if(USE_RX == "TRUE")
 			begin
-				if(lsb_first == 1'b0)
+				if(lsb_first_i == 1'b0)
 				begin
-					rx_shift_reg <= {rx_shift_reg[MAX_BITS_PER_WORD - 2:0], mosi};
+					rx_shift_reg <= {rx_shift_reg[MAX_BITS_PER_WORD - 2:0], mosi_i};
 				end
 				else
 				begin
-					rx_shift_reg[bit_cnt] <= mosi;
+					rx_shift_reg[bit_cnt] <= mosi_i;
 				end
 			end
 		end
 	end
 end
 //tx
-always @ (posedge rst or negedge scl or posedge ss or negedge en)
+always @ (posedge rst_i or negedge scl_i or posedge ss_i or negedge en_i)
 begin
 	if(USE_TX == "TRUE")
 	begin
-		if(rst | ~en)
+		if(rst_i | ~en_i)
 		begin
 			tx_shift_reg <= 'h0;
 		end
 		else
 		begin
-			if(bit_cnt == 4'h0 || ss)
+			if(bit_cnt == 4'h0 || ss_i)
 			begin
-				tx_shift_reg <= bus_in;
+				tx_shift_reg <= bus_i;
 			end
 			else
 			begin
-				if(lsb_first == 1'b0)
+				if(lsb_first_i == 1'b0)
 				begin
 					tx_shift_reg <= {tx_shift_reg[MAX_BITS_PER_WORD - 2:0], 1'b0};
 				end
@@ -196,20 +196,20 @@ begin
 	end
 end
 
-always @ (posedge clk)
+always @ (posedge clk_i)
 begin
-	if(rst)
+	if(rst_i)
 	begin
-		rdy <= 1'b0;
+		rdy_o <= 1'b0;
 	end
 	else
 	begin
-		rdy <= rdy_p ^ rdy_n;
+		rdy_o <= rdy_p ^ rdy_n;
 	end
 end
 
-assign miso = (ss | ~en) ? 1'bz : (lsb_first == 1'b0 ? tx_shift_reg[bit_per_word_int] : tx_shift_reg[0]);
-assign first_byte = first_byte_1 & ~first_byte_2;
-assign last_byte = last_byte_n ^ last_byte_p;
+assign miso_o = (ss_i | ~en_i) ? 1'bz : (lsb_first_i == 1'b0 ? tx_shift_reg[bit_per_word_int] : tx_shift_reg[0]);
+assign first_byte_o = first_byte_1 & ~first_byte_2;
+assign last_byte_o = last_byte_n ^ last_byte_p;
 
 endmodule
