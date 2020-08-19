@@ -32,23 +32,19 @@ module ssd1306 # (
 	parameter VRAM_BUFFERED_OUTPUT = "TRUE",
 	parameter FULL_COLOR_OUTPUT = "TRUE"
 	)(
-	input rst,
-	input clk,
+	input rst_i,
+	input clk_i,
 	
-	input [(FULL_COLOR_OUTPUT == "TRUE" ? 31 : 0):0]edge_color,
-	input render_clk_in,
-	input [12:0]render_x_in,
-	input [12:0]render_y_in,
-	input raster_clk,
-	input raster_h_synk,
-	input raster_v_synk,
-	input raster_de,
-	output reg[(FULL_COLOR_OUTPUT == "TRUE" ? 31 : 0):0]render_d_out,
+	input [(FULL_COLOR_OUTPUT == "TRUE" ? 31 : 0):0]edge_color_i,
+	input [12:0]raster_x_i,
+	input [12:0]raster_y_i,
+	input raster_clk_i,
+	output reg[(FULL_COLOR_OUTPUT == "TRUE" ? 31 : 0):0]raster_d_o,
 	
-	input ss,
-	input scl,
-	input mosi,
-	input dc
+	input ss_i,
+	input scl_i,
+	input mosi_i,
+	input dc_i
     );
 
 /* SPI wires & regs*/
@@ -66,38 +62,38 @@ spi_slave # (
 	.USE_TX("FALSE"),
 	.USE_RX("TRUE")
 	)spi_slave_inst(
-	.rst(rst/* | dc ^ dc_del*/),
-	.clk(clk),
-	.en(1'b1),
-	.bit_per_word(4'd8),
-	.lsb_first(1'b0),
-	.ss(ss),
-	.scl(scl),
-	.miso(),
-	.mosi(mosi),
-	.bus_in(bus_in),
-	.rdy(rdy),
-	.rdy_ack(rdy_ack),
-	.bus_out(bus_out),
-	.first_byte(first_byte),
-	.last_byte(),
-	.last_byte_ack()
+	.rst_i(rst_i/* | dc ^ dc_del*/),
+	.clk_i(clk_i),
+	.en_i(1'b1),
+	.bit_per_word_i(4'd8),
+	.lsb_first_i(1'b0),
+	.ss_i(ss_i),
+	.scl_i(scl_i),
+	.miso_o(),
+	.mosi_i(mosi_i),
+	.bus_i(bus_in),
+	.rdy_o(rdy),
+	.rdy_ack_i(rdy_ack),
+	.bus_o(bus_out),
+	.first_byte_o(first_byte),
+	.last_byte_o(),
+	.last_byte_ack_i()
 	);
 /* !SPI module instance */
 
 /* BUFFER */
 localparam X_RATIO = X_PARENT_SIZE / X_OLED_SIZE;
 localparam Y_RATIO = Y_PARENT_SIZE / Y_OLED_SIZE;
-localparam USED_X_RATIO = (Y_RATIO > X_RATIO) ? X_RATIO : Y_RATIO;
-localparam XY_PARENT_TO_OLED_RATIO = (USED_X_RATIO <= 2) ? 1 : ((USED_X_RATIO <= 4) ? 2 : ((USED_X_RATIO <= 8) ? 4 : ((USED_X_RATIO <= 16) ? 8 : 16)));
+localparam USED_RATIO = ((Y_RATIO > X_RATIO) ? X_RATIO : Y_RATIO) + 1;
+localparam XY_PARENT_TO_OLED_RATIO = (USED_RATIO < 2) ? 1 : ((USED_RATIO < 4) ? 2 : ((USED_RATIO < 8) ? 4 : ((USED_RATIO < 16) ? 8 : 16)));
 localparam XPOS_LSB_BIT = (XY_PARENT_TO_OLED_RATIO == 1) ? 0 : ((XY_PARENT_TO_OLED_RATIO == 2) ? 1 : ((XY_PARENT_TO_OLED_RATIO == 4) ? 2 : ((XY_PARENT_TO_OLED_RATIO == 8) ? 3 : 4)));
 localparam XPOS_HSB_BIT = (XY_PARENT_TO_OLED_RATIO == 1) ? 6 : ((XY_PARENT_TO_OLED_RATIO == 2) ? 7 : ((XY_PARENT_TO_OLED_RATIO == 4) ? 8 : ((XY_PARENT_TO_OLED_RATIO == 8) ? 9 : 10)));
 localparam YPOS_LSB_BIT = (XY_PARENT_TO_OLED_RATIO == 1) ? 0 : ((XY_PARENT_TO_OLED_RATIO == 2) ? 1 : ((XY_PARENT_TO_OLED_RATIO == 4) ? 2 : ((XY_PARENT_TO_OLED_RATIO == 8) ? 3 : 4)));
 localparam YPOS_HSB_BIT = (XY_PARENT_TO_OLED_RATIO == 1) ? 5 : ((XY_PARENT_TO_OLED_RATIO == 2) ? 6 : ((XY_PARENT_TO_OLED_RATIO == 4) ? 7 : ((XY_PARENT_TO_OLED_RATIO == 8) ? 8 : 9)));
 /* !BUFFER */
 
-wire [6:0]raster_x = render_x_in[XPOS_HSB_BIT : XPOS_LSB_BIT];
-wire [5:0]raster_y = render_y_in[YPOS_HSB_BIT : YPOS_LSB_BIT];
+wire [6:0]raster_x = raster_x_i[XPOS_HSB_BIT : XPOS_LSB_BIT];
+wire [5:0]raster_y = raster_y_i[YPOS_HSB_BIT : YPOS_LSB_BIT];
 
 /* SSD1306 logick wires & regs */
 
@@ -153,7 +149,7 @@ reg mem_wr;
 reg [7:0]buff[1023:0];
 
 reg [7:0]data_out_tmp;
-always @ (posedge clk)
+always @ (posedge clk_i)
 begin
 	if(mem_wr)
 	begin
@@ -161,17 +157,17 @@ begin
 	end
 end
 
-wire image_out = (render_x_in[12 : XPOS_LSB_BIT] < X_OLED_SIZE && render_y_in[12 : YPOS_LSB_BIT] < Y_OLED_SIZE);
+wire image_out = (raster_x_i[12 : XPOS_LSB_BIT] < X_OLED_SIZE && raster_y_i[12 : YPOS_LSB_BIT] < Y_OLED_SIZE);
 
 always @ *
 begin
 	if(FULL_COLOR_OUTPUT == "TRUE")
 	begin
-		render_d_out =  image_out ? (on ? ((invert ^ data_out_tmp[raster_y[2:0]]) ? PIXEL_ACTIVE_COLOR : PIXEL_INACTIVE_COLOR) : INACTIVE_DISPLAY_COLOR) : edge_color;
+		raster_d_o =  image_out ? (on ? ((invert ^ data_out_tmp[raster_y[2:0]]) ? PIXEL_ACTIVE_COLOR : PIXEL_INACTIVE_COLOR) : INACTIVE_DISPLAY_COLOR) : edge_color_i;
 	end
 	else
 	begin
-		render_d_out =  image_out ? (on ? ((invert ^ data_out_tmp[raster_y[2:0]]) ? 1'b1 : 1'b0) : 1'b0) : 1'b0;
+		raster_d_o =  image_out ? (on ? ((invert ^ data_out_tmp[raster_y[2:0]]) ? 1'b1 : 1'b0) : 1'b0) : 1'b0;
 	end
 end
 
@@ -179,12 +175,12 @@ always @ *
 begin
 	if(VRAM_BUFFERED_OUTPUT != "TRUE")
 	begin
-		//data_out_tmp <= buff[{render_y_in[YPOS_HSB_BIT:YPOS_LSB_BIT + 3], render_x_in[XPOS_HSB_BIT:XPOS_LSB_BIT]}];
+		//data_out_tmp <= buff[{raster_y_i[YPOS_HSB_BIT:YPOS_LSB_BIT + 3], raster_x_i[XPOS_HSB_BIT:XPOS_LSB_BIT]}];
 		data_out_tmp = buff[{raster_y[5:3], raster_x}];
 	end
 end
 
-always @ (posedge render_clk_in)
+always @ (posedge raster_clk_i)
 begin
 	if(VRAM_BUFFERED_OUTPUT == "TRUE")
 	begin
@@ -193,9 +189,9 @@ begin
 end
 
 // Cmd receive
-always @ (posedge rst or posedge clk)
+always @ (posedge rst_i or posedge clk_i)
 begin
-	if(rst)
+	if(rst_i)
 	begin
 		byte_cnt = 2'h0;
 		rdy_ack <= 1'b0;
@@ -218,12 +214,12 @@ begin
 		begin
 			rdy_ack <= 1'b0;
 		end
-		dc_del <= {dc_del, dc};
+		dc_del <= {dc_del, dc_i};
 		spi_rdy_n <= rdy;
 		if({spi_rdy_n, rdy} == 2'b01)
 		begin
 			rdy_ack <= 1'b1;
-			if(dc)
+			if(dc_i)
 			begin // Data
 				mem_wr <= 1'b1;
 				write_addr <= {y_cnt, x_cnt};
