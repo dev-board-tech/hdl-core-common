@@ -215,6 +215,21 @@ begin
 		data_enable_inverted_int= 0;
 	end
 	else
+	if(DISPLAY_CFG == "1920_1080_30_DISPLAY_74_25_Mhz")
+	begin
+		h_res_int 				= 1920;
+		h_back_porch_int 		= 148;
+		h_front_porch_int 		= 88;
+		h_pulse_width_int	 	= 44;
+		v_res_int 				= 1080;
+		v_back_porch_int 		= 36;
+		v_front_porch_int 		= 4;
+		v_pulse_width_int 		= 5;
+		hsynk_inverted_int		= 1;
+		vsynk_inverted_int		= 0;
+		data_enable_inverted_int= 0;
+	end
+	else
 	if(DISPLAY_CFG == "1920_1080_60_DISPLAY_148_5_Mhz")/* Not working (To fast, maybe will work on -2 grade devices) */
 	begin
 		h_res_int 				= 1920;
