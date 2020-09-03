@@ -49,8 +49,8 @@ module vga_simple #(
 	input rst_i,
 
 	input lcd_clk_i,
-	output lcd_h_synk_o,
-	output lcd_v_synk_o,
+	output reg lcd_h_synk_o,
+	output reg lcd_v_synk_o,
 	output reg[7:0]lcd_r_o,
 	output reg[7:0]lcd_g_o,
 	output reg[7:0]lcd_b_o,
@@ -283,8 +283,8 @@ reg lcd_v_synk_int;
 /* Here we select to use direct or inverse H, V and data_enable signals. */
 	//if(VRAM_BUFFERED_OUTPUT != "TRUE")
 	//begin
-assign lcd_h_synk_o = hsynk_inverted_int ^ lcd_h_synk_int;
-assign lcd_v_synk_o = vsynk_inverted_int ^ lcd_v_synk_int;
+//assign lcd_h_synk_o = hsynk_inverted_int ^ lcd_h_synk_int;
+//assign lcd_v_synk_o = vsynk_inverted_int ^ lcd_v_synk_int;
 	//end
 reg data_enable_int;
 assign lcd_de_o = data_enable_inverted_int ^ data_enable_int;
@@ -306,7 +306,7 @@ reg [7:0]ctrl_write_tmp;
 
 reg [(PIXEL_SIZE_CONF == 1 ? 0 : 7):0]cnt_colors;
 
-always @ (posedge lcd_clk_i or posedge rst_i)
+always @ (posedge lcd_clk_i)
 begin
 	if(rst_i)
 	begin
@@ -319,11 +319,11 @@ begin
 	else
 	begin
 /* Here we select to use direct or inverse H, V and data_enable signals. */
-		/*if(VRAM_BUFFERED_OUTPUT == "TRUE")
+		if(VRAM_BUFFERED_OUTPUT == "TRUE")
 		begin
 			lcd_h_synk_o <= hsynk_inverted_int ^ lcd_h_synk_int;
 			lcd_v_synk_o <= vsynk_inverted_int ^ lcd_v_synk_int;
-		end*/
+		end
 		h_cnt <= h_cnt + 1;
 		if(data_enable_int)
 		begin
@@ -349,11 +349,11 @@ end
 always @ *
 begin
 /* Here we select to use direct or inverse H, V and data_enable signals. */
-	/*if(VRAM_BUFFERED_OUTPUT != "TRUE")
+	if(VRAM_BUFFERED_OUTPUT != "TRUE")
 	begin
 		lcd_h_synk_o <= hsynk_inverted_int ^ lcd_h_synk_int;
 		lcd_v_synk_o <= vsynk_inverted_int ^ lcd_v_synk_int;
-	end*/
+	end
 	//if(MASTER == "TRUE")
 		vmem_raster_int = video_data_i;
 	if(PIXEL_SIZE_CONF != 1)
@@ -397,7 +397,7 @@ begin
 	end
 end
 
-assign h_pos_o = h_cnt - (h_pulse_width_int + h_back_porch_int) + (VRAM_BUFFERED_OUTPUT != "TRUE" ? 1 : 0);
+assign h_pos_o = h_cnt - (h_pulse_width_int + h_back_porch_int);// - (VRAM_BUFFERED_OUTPUT != "TRUE" ? 1 : 0);
 assign v_pos_o = v_cnt - (v_pulse_width_int + v_back_porch_int);
 assign vram_addr_o = vram_mem_addr_cnt;
 

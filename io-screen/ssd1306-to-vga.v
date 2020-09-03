@@ -36,8 +36,8 @@ module ssd1306 # (
 	input clk_i,
 	
 	input [(FULL_COLOR_OUTPUT == "TRUE" ? 31 : 0):0]edge_color_i,
-	input [12:0]raster_x_i,
-	input [12:0]raster_y_i,
+	input [/*clogb2(X_PARENT_SIZE > Y_PARENT_SIZE ? X_PARENT_SIZE : Y_PARENT_SIZE) - 1*/12:0]raster_x_i,
+	input [/*clogb2(X_PARENT_SIZE > Y_PARENT_SIZE ? X_PARENT_SIZE : Y_PARENT_SIZE) - 1*/12:0]raster_y_i,
 	input raster_clk_i,
 	output reg[(FULL_COLOR_OUTPUT == "TRUE" ? 31 : 0):0]raster_d_o,
 	
@@ -84,7 +84,7 @@ spi_slave # (
 /* BUFFER */
 localparam X_RATIO = X_PARENT_SIZE / X_OLED_SIZE;
 localparam Y_RATIO = Y_PARENT_SIZE / Y_OLED_SIZE;
-localparam USED_RATIO = ((Y_RATIO > X_RATIO) ? X_RATIO : Y_RATIO) + 1;
+localparam USED_RATIO = ((Y_RATIO > X_RATIO) ? X_RATIO : Y_RATIO);
 localparam XY_PARENT_TO_OLED_RATIO = (USED_RATIO < 2) ? 1 : ((USED_RATIO < 4) ? 2 : ((USED_RATIO < 8) ? 4 : ((USED_RATIO < 16) ? 8 : 16)));
 localparam XPOS_LSB_BIT = (XY_PARENT_TO_OLED_RATIO == 1) ? 0 : ((XY_PARENT_TO_OLED_RATIO == 2) ? 1 : ((XY_PARENT_TO_OLED_RATIO == 4) ? 2 : ((XY_PARENT_TO_OLED_RATIO == 8) ? 3 : 4)));
 localparam XPOS_HSB_BIT = (XY_PARENT_TO_OLED_RATIO == 1) ? 6 : ((XY_PARENT_TO_OLED_RATIO == 2) ? 7 : ((XY_PARENT_TO_OLED_RATIO == 4) ? 8 : ((XY_PARENT_TO_OLED_RATIO == 8) ? 9 : 10)));
@@ -167,7 +167,7 @@ begin
 	end
 	else
 	begin
-		raster_d_o =  image_out ? (on ? ((invert ^ data_out_tmp[raster_y[2:0]]) ? 1'b1 : 1'b0) : 1'b0) : 1'b0;
+		raster_d_o =  image_out ? (on ? ((invert ^ data_out_tmp[raster_y[2:0]]) ? 1'b1 : 1'b0) : 1'b0) : edge_color_i;
 	end
 end
 
@@ -270,5 +270,11 @@ begin
 end
 
 /* !SSD1306 logick wires & regs */
+//  The following function calculates the address width based on specified data depth
+function integer clogb2;
+	input integer depth;
+	for (clogb2=0; depth>0; clogb2=clogb2+1)
+		depth = depth >> 1;
+endfunction
 
 endmodule
