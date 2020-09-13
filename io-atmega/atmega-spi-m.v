@@ -87,6 +87,7 @@ reg [3:0]bit_cnt;
 reg [(BAUDRATE_CNT_LEN ? BAUDRATE_CNT_LEN - 1 : 0) : 0]prescaller_cnt;
 reg sckint;
 reg [(BAUDRATE_CNT_LEN ? BAUDRATE_CNT_LEN - 1 : 0) : 0]prescdemux;
+reg [(BAUDRATE_CNT_LEN ? BAUDRATE_CNT_LEN - 1 : 0) : 0]prescdemux_reg;
 
 always @ (*)
 begin
@@ -101,7 +102,7 @@ begin
 	end
 end
 
-always @ (*)
+always @ (posedge clk_i)
 begin
 	if(DINAMIC_BAUDRATE == "TRUE")
 	begin
@@ -133,6 +134,7 @@ begin
 		tx_shift_reg <= 8'h00;
 		rx_shift_reg <= 8'hFF;
 		prescaller_cnt <= 'h00;
+		prescdemux_reg <= 8'h0;
 		bit_cnt <= WORD_LEN;
 		sckint <= 1'b0;
 		stc_p <= 1'b0;
@@ -143,13 +145,13 @@ begin
 	begin
 		if(&{SPCR[`ATMEGA_SPI_SPCR_EN_bp], spi_active})
 		begin
-			if(prescaller_cnt & BAUDRATE_CNT_LEN != 0)
+			if(prescaller_cnt/* & BAUDRATE_CNT_LEN != 0*/)
 			begin
 				prescaller_cnt <= prescaller_cnt - 8'h1;
 			end
 			else
 			begin
-				prescaller_cnt <= prescdemux;
+				prescaller_cnt <= prescdemux_reg;
 				sckint <= ~sckint;
 //rx
 				if(~sckint)
@@ -236,6 +238,7 @@ begin
 						tx_shift_reg <= bus_i;
 						bit_cnt <= 4'h0;
 						prescaller_cnt <= prescdemux;
+						prescdemux_reg <= prescdemux;
 						sckint <= 1'b0;
 						spi_active <= 1'b1;
 						sck_active <= 1'b1;

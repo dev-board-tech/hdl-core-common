@@ -21,21 +21,22 @@
 `timescale 1ns / 1ps
 
 module io_bus_dmux # (
+		parameter BITS_PER_BUS = 8,
 		parameter NR_OF_BUSSES_IN = 1
 		)(
-		input [(NR_OF_BUSSES_IN * 8) - 1 : 0]bus_in,
-		output reg[7:0]bus_out
+		input [(NR_OF_BUSSES_IN * BITS_PER_BUS) - 1 : 0]bus_in,
+		output reg[BITS_PER_BUS - 1:0]bus_out
 		);
 reg [NR_OF_BUSSES_IN - 1 : 0]tmp_busses_bits;
 integer cnt_add_busses;
 integer cnt_add_bits;
 		always @ *
 		begin
-			for(cnt_add_bits = 0; cnt_add_bits < 8; cnt_add_bits = cnt_add_bits + 1)
+			for(cnt_add_bits = 0; cnt_add_bits < BITS_PER_BUS; cnt_add_bits = cnt_add_bits + 1)
 			begin: DMUX_IO_DATA_BITS
 				for(cnt_add_busses = 0; cnt_add_busses < NR_OF_BUSSES_IN; cnt_add_busses = cnt_add_busses + 1)
 				begin: DMUX_IO_DATA_BUSES
-					tmp_busses_bits[cnt_add_busses] = bus_in[(cnt_add_busses * 8) + cnt_add_bits];
+					tmp_busses_bits[cnt_add_busses] = bus_in[(cnt_add_busses * BITS_PER_BUS) + cnt_add_bits];
 				end
 				bus_out[cnt_add_bits] = |tmp_busses_bits;
 			end
