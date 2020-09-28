@@ -197,18 +197,13 @@ begin
 				end
 			end
 		end
-		if(int_ack_i)
-		begin
-			SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] <= 1'b0;
-		end
-		else
 		if(rd_i)
 		begin
 			case(addr_i)
 			SPSR_ADDR: 
 			begin
 				SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] <= 1'b0;
-				if(stc_p ^ stc_n)// In case of a read at the same time with a transmision complete.
+				if(stc_p ^ stc_n)
 				begin
 					SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] <= 1'b1;
 					stc_n <= stc_p;
@@ -217,20 +212,23 @@ begin
 			end
 			endcase
 		end
-		else
 		if(stc_p ^ stc_n)
 		begin
 			SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] <= 1'b1;
 			stc_n <= stc_p;
 			sck_active <= 1'b0;
 		end	
+		if(int_ack_i)
+		begin
+			SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] <= 1'b0;
+		end
 		if(bit_cnt == WORD_LEN)
 		begin
 			if(wr_i)
 			begin
 				case(addr_i)
 				SPCR_ADDR: SPCR <= bus_i;
-				SPSR_ADDR: SPSR <= bus_i;
+				SPSR_ADDR: SPSR[0] <= bus_i[0];
 				SPDR_ADDR: 
 				begin
 					if(SPCR[`ATMEGA_SPI_SPCR_EN_bp])
