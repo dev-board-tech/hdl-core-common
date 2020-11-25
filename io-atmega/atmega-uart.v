@@ -507,7 +507,7 @@ begin
 			case(addr_i)
 				UDR_ADDR: bus_o = UDR_rx;
 				UCSRA_ADDR: bus_o = UCSRA;
-				UCSRB_ADDR: bus_o = UCSRB;
+				UCSRB_ADDR: bus_o = {UCSRB[7:`RXEN + 1], USE_RX == "TRUE" ? UCSRB[`RXEN] : 1'b0, USE_TX == "TRUE" ? UCSRB[`TXEN] : 1'b0, UCSRB[`TXEN - 1 : 0]};
 				UCSRC_ADDR: bus_o = UCSRC;
 				UCSRD_ADDR: bus_o = UCSRD;
 				UBRRL_ADDR: bus_o = UBRRL;
