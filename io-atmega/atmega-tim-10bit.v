@@ -139,7 +139,7 @@ reg [7:0]TCCRA;
 reg [7:0]TCCRB;
 reg [7:0]TCCRC;
 reg [7:0]TCCRD;
-reg [7:0]TCCRE;
+//reg [7:0]TCCRE;
 reg [7:0]TCNTL;
 reg [1:0]TCH;
 reg [9:0]OCRA;
@@ -253,7 +253,7 @@ begin
 				TCCRB_ADDR: bus_o = TCCRB;
 				TCCRC_ADDR: bus_o = TCCRC;
 				TCCRD_ADDR: bus_o = TCCRD;
-				TCCRE_ADDR: bus_o = TCCRE;
+				//TCCRE_ADDR: bus_o = TCCRE;
 				TCNTL_ADDR: bus_o = TCNTL;
 				TCH_ADDR: bus_o = TMP_REG;
 				OCRA_ADDR:
@@ -288,7 +288,7 @@ begin
 		TCCRB <= 8'h00;
 		TCCRC <= 8'h00;
 		TCCRD <= 8'h00;
-		TCCRE <= 8'h00;
+		//TCCRE <= 8'h00;
 		TCNTL <= 8'h00;
 		TCH <= 2'h0;
 		OCRA <= 10'h000;
@@ -384,7 +384,7 @@ begin
 						3'b101: oca_o <= ~oca_o;
 						default:
 						begin
-						case(OCRA_int)
+							case(OCRA_int)
 								10'h000:	
 								begin
 									case(TCCRC[`COM0D1:`COM0D0])
@@ -614,7 +614,7 @@ begin
 					TCCRB_ADDR: TCCRB <= bus_i;
 					TCCRC_ADDR: TCCRC <= bus_i;
 					TCCRD_ADDR: TCCRD <= bus_i;
-					TCCRE_ADDR: TCCRE <= bus_i;
+					//TCCRE_ADDR: TCCRE <= bus_i;
 					TCNTL_ADDR: TCNTL <= bus_i;
 					TCH_ADDR:
 					begin

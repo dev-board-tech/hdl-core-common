@@ -93,7 +93,7 @@ reg [7:0]UDR_tx;
 reg [7:0]UCSRA;
 reg [7:0]UCSRB;
 reg [7:0]UCSRC;
-reg [7:0]UCSRD;
+//reg [7:0]UCSRD;
 reg [7:0]UBRRL;
 reg [3:0]UBRRH;
 
@@ -136,9 +136,9 @@ begin
 			UCSRB[7:2] <= 6'h00;
 			UCSRB[0] <= 1'b0;
 			UCSRC <= 8'h00;
-			UCSRD <= 8'h00;
+			//UCSRD <= 8'h00;
 			UBRRL <= 8'h00;
-			UBRRH <= 8'h00;
+			UBRRH <= 4'h00;
 			tx_prescaller_cnt <= 16'h0000;
 			tx_state <= 2'h0;
 			tx_o <= 1'b1;
@@ -263,9 +263,9 @@ begin
 				UCSRB[0] <= bus_i[0];
 			end
 			UCSRC_ADDR: UCSRC <= bus_i;
-			UCSRD_ADDR: UCSRD <= bus_i;
+			//UCSRD_ADDR: UCSRD <= bus_i;
 			UBRRL_ADDR: UBRRL <= bus_i;
-			UBRRH_ADDR: UBRRH <= bus_i;
+			UBRRH_ADDR: UBRRH <= bus_i[3:0];
 		endcase
 	end
 end
@@ -509,9 +509,9 @@ begin
 				UCSRA_ADDR: bus_o = UCSRA;
 				UCSRB_ADDR: bus_o = {UCSRB[7:`RXEN + 1], USE_RX == "TRUE" ? UCSRB[`RXEN] : 1'b0, USE_TX == "TRUE" ? UCSRB[`TXEN] : 1'b0, UCSRB[`TXEN - 1 : 0]};
 				UCSRC_ADDR: bus_o = UCSRC;
-				UCSRD_ADDR: bus_o = UCSRD;
+				//UCSRD_ADDR: bus_o = UCSRD;
 				UBRRL_ADDR: bus_o = UBRRL;
-				UBRRH_ADDR: bus_o = UBRRH;
+				UBRRH_ADDR: bus_o = {4'h0, UBRRH[3:0]};
 			endcase
 		end
 	end

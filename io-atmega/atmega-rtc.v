@@ -26,6 +26,8 @@ module rtc #(
 	)(
 	input rst_i,
 	input clk_i,
+	input clk_cnt_i,
+	input [CNT_SIZE - 1:0]top_i,
 	output int_o,
 	input int_ack_i
 	);
@@ -35,7 +37,7 @@ reg int_rst_int_n;
 
 reg [CNT_SIZE-1:0]CNT;
 
-always @ (posedge clk_i)
+always @ (posedge clk_i or posedge rst_i)
 begin
 	if(rst_i)
 		int_rst_int_n <= 'h0;
@@ -43,7 +45,7 @@ begin
 		int_rst_int_n <= ~int_rst_int_n;
 end
 
-always @ (posedge clk_i)
+always @ (posedge clk_cnt_i)
 begin
 	if(rst_i)
 	begin
@@ -52,10 +54,10 @@ begin
 	end
 	else
 	begin
-		if(CNT >= PERIOD_STATIC - 1)
+		if(CNT >= (PERIOD_STATIC != 0 ? PERIOD_STATIC : top_i) - 1)
 		begin
 			CNT <= 'h0;
-			if(PERIOD_STATIC)
+			if((PERIOD_STATIC != 0 ? PERIOD_STATIC : top_i))
 			begin
 				if(~int_o)
 				begin
@@ -63,7 +65,7 @@ begin
 				end
 			end
 		end
-		else if(PERIOD_STATIC)
+		else if((PERIOD_STATIC != 0 ? PERIOD_STATIC : top_i))
 		begin
 			CNT <= CNT + 1;
 		end
