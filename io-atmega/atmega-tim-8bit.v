@@ -312,7 +312,7 @@ rtc #(
 	.rst_i(rst_i),
 	.clk_i(clk_i),
 	.clk_cnt_i(clk_int),
-	.top(INCREMENT_VALUE == 2 ? OCRB[7:1] : OCRB),
+	.top_i(INCREMENT_VALUE == 2 ? OCRB[7:1] : OCRB),
 	.int_o(ocrb_int),
 	.int_ack_i(ocrb_int_ack_i)
 	);

@@ -52,7 +52,7 @@ initial begin
 	$readmemh("usb_cdc_descriptor.mem", descriptor_rom);
 end
 
-always @(negedge clk_i) desc_rom_r <= descriptor_rom[addr_i];
+always @(*) desc_rom_r = descriptor_rom[addr_i];
 
 `else
 always @ *
