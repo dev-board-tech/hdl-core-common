@@ -54,7 +54,9 @@ reg rdy_ack;
 wire [7:0]bus_out;
 wire first_byte;
 /* !SPI wires */
-reg [3:0]dc_del;
+reg dc_del;
+wire last_bit;
+reg last_bit_del;
 
 /* SPI module instance */
 spi_slave # (
@@ -62,7 +64,7 @@ spi_slave # (
 	.USE_TX("FALSE"),
 	.USE_RX("TRUE")
 	)spi_slave_inst(
-	.rst_i(rst_i/* | dc ^ dc_del*/),
+	.rst_i(rst_i | dc_i ^ dc_del),
 	.clk_i(clk_i),
 	.en_i(1'b1),
 	.bit_per_word_i(4'd8),
@@ -77,7 +79,9 @@ spi_slave # (
 	.bus_o(bus_out),
 	.first_byte_o(first_byte),
 	.last_byte_o(),
-	.last_byte_ack_i()
+	.last_byte_ack_i(),
+	.first_bit_o(),
+	.last_bit_o(last_bit)
 	);
 /* !SPI module instance */
 
@@ -149,50 +153,39 @@ reg mem_wr;
 reg [7:0]buff[1023:0];
 
 reg [7:0]data_out_tmp;
-always @ (posedge clk_i)
-begin
-	if(mem_wr)
-	begin
+always @ (posedge clk_i) begin
+	if(mem_wr) begin
 		buff[write_addr] <= write_data;
 	end
 end
 
 wire image_out = (raster_x_i[12 : XPOS_LSB_BIT] < X_OLED_SIZE && raster_y_i[12 : YPOS_LSB_BIT] < Y_OLED_SIZE);
 
-always @ *
-begin
-	if(FULL_COLOR_OUTPUT == "TRUE")
-	begin
+always @ * begin
+	if(FULL_COLOR_OUTPUT == "TRUE") begin
 		raster_d_o =  image_out ? (on ? ((invert ^ data_out_tmp[raster_y[2:0]]) ? PIXEL_ACTIVE_COLOR : PIXEL_INACTIVE_COLOR) : INACTIVE_DISPLAY_COLOR) : edge_color_i;
-	end
-	else
-	begin
+	end else begin
 		raster_d_o =  image_out ? (on ? ((invert ^ data_out_tmp[raster_y[2:0]]) ? 1'b1 : 1'b0) : 1'b0) : edge_color_i;
 	end
 end
 
-always @ *
-begin
-	if(VRAM_BUFFERED_OUTPUT != "TRUE")
-	begin
+always @ * begin
+	if(VRAM_BUFFERED_OUTPUT != "TRUE") begin
 		//data_out_tmp <= buff[{raster_y_i[YPOS_HSB_BIT:YPOS_LSB_BIT + 3], raster_x_i[XPOS_HSB_BIT:XPOS_LSB_BIT]}];
 		data_out_tmp = buff[{raster_y[5:3], raster_x}];
 	end
 end
 
-always @ (posedge raster_clk_i)
-begin
-	if(VRAM_BUFFERED_OUTPUT == "TRUE")
-	begin
+always @ (posedge raster_clk_i) begin
+	if(VRAM_BUFFERED_OUTPUT == "TRUE") begin
 		data_out_tmp <= buff[{raster_y[5:3], raster_x}];
 	end
 end
 
+reg latched_dc_command;
 // Cmd receive
-always @ (posedge rst_i or posedge clk_i)
-begin
-	if(rst_i)
-	begin
+always @ (posedge rst_i or posedge clk_i) begin
+	if(rst_i) begin
 		byte_cnt = 2'h0;
 		rdy_ack <= 1'b0;
 		spi_rdy_n <= 1'b0;
@@ -206,21 +199,22 @@ begin
 		write_data <= 8'h00;
 		dc_del <= 1'b1;
 		invert <= 1'b0;
-	end
-	else
-	begin
+		latched_dc_command = 1'b0;
+	end else begin
 		mem_wr <= 1'b0;
-		if(~rdy)
-		begin
+		if(~rdy) begin
 			rdy_ack <= 1'b0;
 		end
-		dc_del <= {dc_del, dc_i};
+		dc_del <= dc_i;
+		last_bit_del <= last_bit;
+		if({last_bit_del, last_bit} == 2'b01)
+			latched_dc_command = dc_i;
+		//if(dc_del == dc_i)
+		//	latched_dc_command <= dc_i;
 		spi_rdy_n <= rdy;
-		if({spi_rdy_n, rdy} == 2'b01)
-		begin
+		if({spi_rdy_n, rdy} == 2'b01) begin
 			rdy_ack <= 1'b1;
-			if(dc_i)
-			begin // Data
+			if(latched_dc_command) begin // Data
 				mem_wr <= 1'b1;
 				write_addr <= {y_cnt, x_cnt};
 				write_data <= bus_out;
@@ -228,12 +222,9 @@ begin
 				byte_cnt = 2'd0;
 				curr_cmd_len = 2'd0;
 				curr_cmd = 8'h00;
-			end
-			else
-			begin // Command
+			end else begin // Command
 				byte_cnt = byte_cnt + 7'h1;
-				if(curr_cmd_len == 2'd0)
-				begin
+				if(curr_cmd_len == 2'd0) begin
 					curr_cmd = bus_out;
 					case(bus_out)
 						`SSD1306_COLUMNADDR,
@@ -250,8 +241,7 @@ begin
 						default: curr_cmd_len = 2'd1;
 					endcase
 				end
-				if(curr_cmd_len == byte_cnt)
-				begin
+				if(curr_cmd_len == byte_cnt) begin
 					case(curr_cmd)
 						`SSD1306_COLUMNADDR: x_cnt <= bus_out;
 						`SSD1306_PAGEADDR: y_cnt <= bus_out;

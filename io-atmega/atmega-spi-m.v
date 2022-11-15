@@ -89,11 +89,9 @@ reg sckint;
 reg [(BAUDRATE_CNT_LEN ? BAUDRATE_CNT_LEN - 1 : 0) : 0]prescdemux;
 reg [(BAUDRATE_CNT_LEN ? BAUDRATE_CNT_LEN - 1 : 0) : 0]prescdemux_reg;
 
-always @ (*)
-begin
+always @ (*) begin
 	bus_o = 8'b00;
-	if(rd_i)
-	begin
+	if(rd_i) begin
 		case(addr_i)
 		SPCR_ADDR: bus_o = SPCR;
 		SPSR_ADDR: bus_o = SPSR;
@@ -102,10 +100,8 @@ begin
 	end
 end
 
-always @ (posedge clk_i)
-begin
-	if(DINAMIC_BAUDRATE == "TRUE")
-	begin
+always @ (posedge clk_i) begin
+	if(DINAMIC_BAUDRATE == "TRUE") begin
 		case({SPSR[`ATMEGA_SPI_SPSR_SPI2X_bp], SPCR[`ATMEGA_SPI_SPCR_SPR1_bp], SPCR[`ATMEGA_SPI_SPCR_SPR0_bp]})
 			3'b000: prescdemux = 1;
 			3'b001: prescdemux = 8;
@@ -116,17 +112,13 @@ begin
 			3'b110: prescdemux = 16;
 			3'b111: prescdemux = 32;
 		endcase
-	end
-	else
-	begin
+	end else begin
 		prescdemux = BAUDRATE_DIVIDER;
 	end
 end
 
-always @ (posedge clk_i)
-begin
-	if(rst_i)
-	begin
+always @ (posedge clk_i) begin
+	if(rst_i) begin
 		stc_n <= 1'b0;
 		SPCR <= 8'h00;
 		SPSR <= 8'h00;
@@ -140,99 +132,69 @@ begin
 		stc_p <= 1'b0;
 		spi_active <= 1'b0;
 		sck_active <= 1'b0;
-	end
-	else
-	begin
-		if(&{SPCR[`ATMEGA_SPI_SPCR_EN_bp], spi_active})
-		begin
-			if(prescaller_cnt/* & BAUDRATE_CNT_LEN != 0*/)
-			begin
+	end else begin
+		if(&{SPCR[`ATMEGA_SPI_SPCR_EN_bp], spi_active}) begin
+			if(prescaller_cnt/* & BAUDRATE_CNT_LEN != 0*/) begin
 				prescaller_cnt <= prescaller_cnt - 8'h1;
-			end
-			else
-			begin
+			end else begin
 				prescaller_cnt <= prescdemux_reg;
 				sckint <= ~sckint;
 //rx
-				if(~sckint)
-				begin
+				if(~sckint) begin
 					bit_cnt <= bit_cnt + 4'd1;
-					if(USE_RX == "TRUE")
-					begin
-						if(bit_cnt == WORD_LEN - 1)
-						begin
-							if(SPCR[`ATMEGA_SPI_SPCR_DORD_bp] == 1'b0)
-							begin
+					if(USE_RX == "TRUE") begin
+						if(bit_cnt == WORD_LEN - 1) begin
+							if(SPCR[`ATMEGA_SPI_SPCR_DORD_bp] == 1'b0) begin
 								SPDR <= {rx_shift_reg[WORD_LEN - 2:0], miso_i};
-							end
-							else
-							begin
+							end else begin
 								SPDR <= {miso_i, rx_shift_reg[WORD_LEN - 1:1]};
 							end
 						end
-						if(SPCR[`ATMEGA_SPI_SPCR_DORD_bp] == 1'b0)
-						begin
+						if(SPCR[`ATMEGA_SPI_SPCR_DORD_bp] == 1'b0) begin
 							rx_shift_reg <= {rx_shift_reg[WORD_LEN - 2:0], miso_i};
-						end
-						else
-						begin
+						end else begin
 							rx_shift_reg <= {miso_i, rx_shift_reg[WORD_LEN - 1:1]};
 						end
 					end
-				end
-				else
-				begin
+				end else begin
 //tx
-					if(USE_TX == "TRUE")
-					begin
-						if(~SPCR[`ATMEGA_SPI_SPCR_DORD_bp])
-						begin
+					if(USE_TX == "TRUE") begin
+						if(~SPCR[`ATMEGA_SPI_SPCR_DORD_bp]) begin
 							tx_shift_reg <= {tx_shift_reg[WORD_LEN - 2:0], 1'b0};
-						end
-						else
-						begin
+						end else begin
 							tx_shift_reg <= {1'b0, tx_shift_reg[WORD_LEN - 1:1]};
 						end
 					end
 				end
 			end
 		end
-		if(rd_i)
-		begin
+		if(rd_i) begin
 			case(addr_i)
-			SPSR_ADDR: 
-			begin
-				SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] <= 1'b0;
-				if(stc_p ^ stc_n)
-				begin
-					SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] <= 1'b1;
-					stc_n <= stc_p;
-					sck_active <= 1'b0;
-				end	
-			end
+				SPSR_ADDR: begin
+					SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] <= 1'b0;
+					if(stc_p ^ stc_n) begin
+						SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] <= 1'b1;
+						stc_n <= stc_p;
+						sck_active <= 1'b0;
+					end	
+				end
 			endcase
 		end
-		if(stc_p ^ stc_n)
-		begin
+		if(stc_p ^ stc_n) begin
 			SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] <= 1'b1;
 			stc_n <= stc_p;
 			sck_active <= 1'b0;
 		end	
-		if(int_ack_i)
-		begin
+		if(int_ack_i) begin
 			SPSR[`ATMEGA_SPI_SPSR_SPIF_bp] <= 1'b0;
 		end
-		if(bit_cnt == WORD_LEN)
-		begin
-			if(wr_i)
-			begin
+		if(bit_cnt == WORD_LEN) begin
+			if(wr_i) begin
 				case(addr_i)
 				SPCR_ADDR: SPCR <= bus_i;
 				SPSR_ADDR: SPSR[0] <= bus_i[0];
-				SPDR_ADDR: 
-				begin
-					if(SPCR[`ATMEGA_SPI_SPCR_EN_bp])
-					begin
+				SPDR_ADDR: begin
+					if(SPCR[`ATMEGA_SPI_SPCR_EN_bp]) begin
 						tx_shift_reg <= bus_i;
 						bit_cnt <= 4'h0;
 						prescaller_cnt <= prescdemux;
@@ -244,8 +206,7 @@ begin
 				end
 				endcase
 			end
-			if(stc_p == stc_n && spi_active)
-			begin
+			if(stc_p == stc_n && spi_active) begin
 				stc_p <= ~stc_p;
 				spi_active <= 1'b0;
 			end
