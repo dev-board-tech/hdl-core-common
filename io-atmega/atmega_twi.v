@@ -52,6 +52,7 @@
 module atmega_twi #(
 	parameter PLATFORM = "XILINX",
 	parameter BUS_ADDR_DATA_LEN = 8,
+	parameter BASE_ADDR = 0,
 	parameter TWBR_ADDR = 'hb8,
 	parameter TWSR_ADDR = 'hb9,
 	parameter TWAR_ADDR = 'hba,
@@ -70,7 +71,8 @@ module atmega_twi #(
 	input int_ack_i,
 	
 	inout scl_io,
-	inout sda_io
+	inout sda_io,
+	output sda_dir_o
     );
 
 reg [7:0]TWBR;
@@ -111,12 +113,12 @@ begin
 	if(rd_i)
 	begin
 		case(addr_i)
-		TWBR_ADDR: bus_o <= TWBR;
-		TWSR_ADDR: bus_o <= TWSR;
-		//TWAR_ADDR: bus_o <= TWAR;
-		TWDR_ADDR: bus_o <= TWDR;
-		TWCR_ADDR: bus_o <= TWCR;
-		//TWAMR_ADDR: bus_o <= TWAMR;
+		BASE_ADDR + TWBR_ADDR: bus_o <= TWBR;
+		BASE_ADDR + TWSR_ADDR: bus_o <= TWSR;
+		//BASE_ADDR + TWAR_ADDR: bus_o <= TWAR;
+		BASE_ADDR + TWDR_ADDR: bus_o <= TWDR;
+		BASE_ADDR + TWCR_ADDR: bus_o <= TWCR;
+		//BASE_ADDR + TWAMR_ADDR: bus_o <= TWAMR;
 		endcase
 	end
 end
@@ -168,7 +170,7 @@ begin
 						begin // Transmit data
 							if(bit_cnt[2:0] == 4'h8)
 							begin // All bits has been send, switch to receive ack.
-								sda_int = 1'bz;
+								sda_int = 1'b1;
 								tx_en <= 1'b0;
 							end
 							else
@@ -240,7 +242,7 @@ begin
 					end
 					if(clk_cnt == 4'h8)
 					begin
-						sda_int = 1'bz;
+						sda_int = 1'b1;
 					end
 					clk_cnt = clk_cnt + 1;
 				end
@@ -250,10 +252,10 @@ begin
 		if(wr_i)
 		begin
 			case(addr_i)
-				TWBR_ADDR: TWBR <= bus_i;
-				TWSR_ADDR: TWSR <= bus_i;
+				BASE_ADDR + TWBR_ADDR: TWBR <= bus_i;
+				BASE_ADDR + TWSR_ADDR: TWSR <= bus_i;
 				//TWAR_ADDR: TWAR <= bus_i;
-				TWDR_ADDR: 
+				BASE_ADDR + TWDR_ADDR: 
 				begin
 					TWDR <= bus_i;
 					TWCR[`TWCR_TWEN] <= ~TWCR[`TWCR_TWINT];
@@ -265,7 +267,7 @@ begin
 						clk_cnt <= 4'h0;
 					end
 				end
-				TWCR_ADDR: 
+				BASE_ADDR + TWCR_ADDR: 
 				begin
 					TWCR[`TWCR_TWIE] <= bus_i[`TWCR_TWIE];
 					TWCR[`TWCR_TWEN] <= bus_i[`TWCR_TWEN];
@@ -298,7 +300,7 @@ begin
 		if(rd_i)
 		begin
 			case(addr_i)
-			TWDR_ADDR: 
+			BASE_ADDR + TWDR_ADDR: 
 			begin
 				//STATUS[`TWI_MASTER_RIF_bp] <= 1'b0;
 			end
@@ -325,6 +327,7 @@ endgenerate
 
 assign scl_io = scl_int;
 
-assign sda_io = sda_int ? 1'bz : sda_int;
+assign sda_io = sda_int ? 1'bz : 1'b0;
+assign sda_dir_o = sda_int;
 
 endmodule

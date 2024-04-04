@@ -204,6 +204,7 @@ begin
 					begin
 						tx_state <= 2'h0;
 						txc_p <= ~txc_n;
+						udre_int_p <= ~udre_int_n;
 					end
 				end
 				if(udre_p ^ udre_n & send_p == send_n)
@@ -241,8 +242,8 @@ begin
 		begin
 			txc_n <= txc_p;
 		end
-		if(~udre_old & UCSRA[`UDRE])
-			udre_int_p <= ~udre_int_n;
+		//if(~udre_old & UCSRA[`UDRE])
+			//udre_int_p <= ~udre_int_n;
 	end
 	if(wr_i)
 	begin
@@ -251,6 +252,7 @@ begin
 			begin
 				UDR_tx <= bus_i;
 				udre_p <= ~udre_n;
+				udre_int_n <= udre_int_p;
 			end
 			UCSRA_ADDR:
 			begin
