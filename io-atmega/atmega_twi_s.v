@@ -45,7 +45,8 @@ module twi_s #(
 	input int_ack_i,
 	
 	inout scl_io,
-	inout sda_io
+	inout sda_io,
+	output sda_dir_o
     );
 
 reg [7:0]CTRLA;
@@ -55,7 +56,7 @@ reg [7:0]STATUS;
 reg [7:0]BAUD;
 reg [7:0]DATA;
 
-assign req_bus = 0;//addr >= ADDRESS && addr < (ADDRESS + 16);
+//assign req_bus = 0;//addr >= ADDRESS && addr < (ADDRESS + 16);
 wire rd_int = rd_i;
 wire wr_int = wr_i;
 
@@ -152,7 +153,8 @@ begin
 							case(rcv_ack)
 							1'b0:
 							begin
-								sda_int <= DATA[bit_count];
+								sda_int <= DATA[7];//DATA[bit_count];
+								DATA <= {DATA[6:0], 1'b0};
 							end
 							1'b1:
 								sda_int <= 1'b1;
@@ -314,7 +316,7 @@ begin
 		if(rd_int)
 		begin
 			case(addr_i[BUS_ADDR_DATA_LEN-1:0])
-			`TWI_MASTER_DATA: 
+			DATA_ADDR: 
 				begin
 					STATUS[`TWI_MASTER_RIF_bp] <= 1'b0;
 				end
@@ -336,7 +338,8 @@ end
 endgenerate
 
 
-assign scl_io = scl_int ? 1'bz : scl_int;
+assign scl_io = scl_int ? 1'b1 : scl_int;
 assign sda_io = sda_int ? 1'bz : sda_int;
+assign sda_dir_o = sda_int;
 
 endmodule
